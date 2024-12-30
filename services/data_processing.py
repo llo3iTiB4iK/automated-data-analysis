@@ -4,6 +4,8 @@ from scipy import stats
 import sqlite3
 import tempfile
 import os
+import json
+from typing import Any
 from werkzeug.datastructures.file_storage import FileStorage
 from errors import ParameterError
 
@@ -74,6 +76,41 @@ def process_data(file: FileStorage, params: dict) -> pd.DataFrame:
     elif index_col:
         raise ParameterError('index_col', index_col, list(data.columns.values))
 
+    # Fill missing values on demand
+    def check_fillna_dtype_compatibility(values: dict | int | float | str | bool, df: pd.DataFrame) -> None:
+        if not isinstance(values, dict):
+            values: dict = {na_col: values for na_col in df.columns[df.isna().any()].tolist()}
+        for column, value in values.items():
+            if column in df.columns:
+                col_type = df[column].dtype
+                if pd.api.types.is_numeric_dtype(col_type) and not isinstance(value, (int, float)):
+                    raise ValueError(f"Value '{value}' cannot be assigned to column '{column}' with numeric type")
+                elif pd.api.types.is_string_dtype(col_type) and not isinstance(value, str):
+                    raise ValueError(f"Value '{value}' cannot be assigned to column '{column}' with string type")
+                elif pd.api.types.is_bool_dtype(col_type) and not isinstance(value, bool):
+                    raise ValueError(f"Value '{value}' cannot be assigned to column '{column}' with boolean type")
+            else:
+                raise ValueError(f"Column '{column}' to fill missing values is not found in the DataFrame.")
+
+    fill_na_values: str = params.get('fill_na_values')
+    if fill_na_values:
+        try:
+            fill_na_decoded: Any = json.loads(fill_na_values)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Error occurred when decoding provided JSON: \"{e}\"")
+
+        if params.get("allow_type_conversion") != "true":
+            check_fillna_dtype_compatibility(fill_na_decoded, data)
+        try:
+            data.fillna(fill_na_decoded, inplace=True)
+        except (ValueError, TypeError):
+            raise ParameterError("fill_na_values", fill_na_values, ["JSON object", "string", "number", "boolean"])
+
+    if params.get('ffill') == 'true':
+        data.ffill(inplace=True)
+    if params.get('bfill') == 'true':
+        data.bfill(inplace=True)
+
     # Drop missing values on demand
     drop_na: str = params.get('drop_na')
     if drop_na in drop_na_values:
@@ -83,9 +120,6 @@ def process_data(file: FileStorage, params: dict) -> pd.DataFrame:
                 "The dataset is empty after dropping missing values. Please adjust the drop_na parameter or dataset.")
     elif drop_na:
         raise ParameterError('drop_na', drop_na, drop_na_values)
-
-    # Fill missing values on demand
-    # todo 2: add filling NaN values
 
     # Drop outliers on demand
     def is_float(string):

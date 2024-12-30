@@ -52,6 +52,30 @@ def home() -> str:
             </div>
             <div>
                 <label>
+                    <textarea name="fill_na_values" rows="5" placeholder='value OR {"column_name1": "value1", "column_name2": "value2"}'></textarea>
+                    Вкажіть словник або значення для заповнення пропущених значень (формат JSON):
+                </label>
+            </div>
+            <div>
+                <label>
+                    <input type="checkbox" name="allow_type_conversion" value="true">
+                    Дозволити перетворення типів
+                </label>
+            </div>
+            <div>
+                <label>
+                    <input type="checkbox" name="ffill" value="true">
+                    Заповнити пропущені значення попереднім дійсним значенням стовпця
+                </label>
+            </div>
+            <div>
+                <label>
+                    <input type="checkbox" name="bfill" value="true">
+                    Заповнити пропущені значення наступним дійсним значенням стовпця
+                </label>
+            </div>
+            <div>
+                <label>
                     <input type="radio" name="drop_na" value="" checked>
                     Не видаляти пропущених даних
                 </label>

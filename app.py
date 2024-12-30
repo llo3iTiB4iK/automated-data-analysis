@@ -14,9 +14,42 @@ def home() -> str:
     return '''
         <!doctype html>
         <title>Upload File</title>
-        <h1>Upload a file</h1>
+        <h1>Аналіз набору даних</h1>
         <form action="/analyze" method="post" enctype="multipart/form-data">
-            <input type="file" name="file">
+            <label>
+                <input type="file" name="file">
+                Файл в форматі CSV, XLS/XLSX, JSON або DB (SQLite)
+            </label>
+            <div>
+                <label>
+                    <input type="text" name="sep">
+                    Роздільник значень, якщо відмінний від коми (для CSV файлів)
+                </label>
+            </div>
+            <div>
+                <label>
+                    <input type="text" name="thousands">
+                    Роздільник тисяч, якщо є (для CSV або EXCEL файлів)
+                </label>
+            </div>
+            <div>
+                <label>
+                    <input type="text" name="decimal">
+                    Символ десяткової крапки, якщо відмінний від крапки (для CSV або EXCEL файлів)
+                </label>
+            </div>
+            <div>
+                <label>
+                    <input type="text" name="sheet_name">
+                    Назва листа, якщо не перший з доступних (для EXCEL файлів)
+                </label>
+            </div>
+            <div>
+                <label>
+                    <input type="text" name="table_name">
+                    Назва таблиці в БД (для DB файлів)
+                </label>
+            </div>
             <div>
                 <label>
                     <input type="radio" name="drop_na" value="" checked>

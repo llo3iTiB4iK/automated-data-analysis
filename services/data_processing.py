@@ -1,4 +1,7 @@
 import pandas as pd
+import sqlite3
+import tempfile
+import os
 from werkzeug.datastructures.file_storage import FileStorage
 from errors import ParameterError
 
@@ -11,23 +14,66 @@ def process_data(file: FileStorage, params: dict) -> pd.DataFrame:
 
     # Read data based on file extension
     data: pd.DataFrame
-    # todo 1: add db reading
     if extension == 'csv':
-        data = pd.read_csv(file.stream)
+        optional_params: list = ["sep", "thousands", "decimal"]
+        read_csv_kwargs: dict = {param: params[param] for param in optional_params if params.get(param)}
+        data = pd.read_csv(file.stream, **read_csv_kwargs)
     elif extension in ['xls', 'xlsx']:
-        data = pd.read_excel(file.stream)
+        optional_params: list = ["sheet_name", "thousands", "decimal"]
+        read_excel_params: dict = {param: params[param] for param in optional_params if params.get(param)}
+        data = pd.read_excel(file.stream.read(), **read_excel_params)
     elif extension == 'json':
         data = pd.read_json(file.stream)
+    elif extension == 'db':
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".db") as tmp_file:
+            tmp_file.write(file.read())
+            temp_file_path: str = tmp_file.name
+        cnx: sqlite3.Connection = sqlite3.connect(temp_file_path)
+        table_name: str = params['table_name']
+        try:
+            data = pd.read_sql(f"SELECT * FROM {table_name}", cnx)
+        except pd.errors.DatabaseError:
+            cursor: sqlite3.Cursor = cnx.execute("SELECT name FROM sqlite_master WHERE type='table';")
+            existing_tables: list = [record[0] for record in cursor.fetchall()]
+            raise ParameterError('table_name', table_name, existing_tables)
+        finally:
+            cnx.close()
+            os.remove(temp_file_path)
     else:
         raise ValueError("Unsupported file format. Please upload CSV, Excel, or JSON files.")
+    if data.empty:
+        raise ValueError("The uploaded file contains no data. Please upload a file with valid data.")
+
+    # Limit row range on demand
+    def validate_row_range(param_name: str, params: dict, max_value: int) -> int:
+        value: str = params.get(param_name)
+        if value and value.isdigit() and 1 <= int(value) <= max_value:
+            return int(value)
+        elif value:
+            raise ParameterError(param_name, value, ['1', '...', str(max_value)])
+
+    row_range_start: int = validate_row_range('row_range_start', params, len(data))
+    row_range_end: int = validate_row_range('row_range_end', params, len(data))
+    row_range_step: int = validate_row_range('row_range_step', params, len(data))
+    if row_range_start:
+        row_range_start -= 1
+    data = data.iloc[row_range_start:row_range_end:row_range_step]
+    if data.empty:
+        raise ValueError("The specified row range resulted in an empty dataset. Please adjust the range and try again.")
+
+    # Set index on demand
+    index_col: str = params.get('index_col')
+    if index_col in data.columns.values:
+        data.set_index(index_col, inplace=True)
+    elif index_col:
+        raise ParameterError('index_col', index_col, list(data.columns.values))
 
     # Drop missing values on demand
     drop_na: str = params.get('drop_na')
-    if drop_na:
-        if drop_na in drop_na_values:
-            data.dropna(axis=params.get('drop_na'), inplace=True)
-        else:
-            raise ParameterError('drop_na', drop_na, drop_na_values)
+    if drop_na in drop_na_values:
+        data.dropna(axis=params.get('drop_na'), inplace=True)
+    elif drop_na:
+        raise ParameterError('drop_na', drop_na, drop_na_values)
 
     # Fill missing values on demand
     # todo 2: add filling NaN values

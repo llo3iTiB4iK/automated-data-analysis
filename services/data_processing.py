@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+from scipy import stats
 import sqlite3
 import tempfile
 import os
@@ -6,6 +8,8 @@ from werkzeug.datastructures.file_storage import FileStorage
 from errors import ParameterError
 
 drop_na_values: list = ['rows', 'columns']
+drop_duplicates_values: list = ['keep_first', 'with_original']
+drop_outliers_values: list = ['yes']
 
 
 def process_data(file: FileStorage, params: dict) -> pd.DataFrame:
@@ -65,6 +69,8 @@ def process_data(file: FileStorage, params: dict) -> pd.DataFrame:
     index_col: str = params.get('index_col')
     if index_col in data.columns.values:
         data.set_index(index_col, inplace=True)
+        if data.empty:
+            raise ValueError("The dataset is empty after setting the index. Please check the selected index column.")
     elif index_col:
         raise ParameterError('index_col', index_col, list(data.columns.values))
 
@@ -72,6 +78,9 @@ def process_data(file: FileStorage, params: dict) -> pd.DataFrame:
     drop_na: str = params.get('drop_na')
     if drop_na in drop_na_values:
         data.dropna(axis=params.get('drop_na'), inplace=True)
+        if data.empty:
+            raise ValueError(
+                "The dataset is empty after dropping missing values. Please adjust the drop_na parameter or dataset.")
     elif drop_na:
         raise ParameterError('drop_na', drop_na, drop_na_values)
 
@@ -79,10 +88,42 @@ def process_data(file: FileStorage, params: dict) -> pd.DataFrame:
     # todo 2: add filling NaN values
 
     # Drop outliers on demand
-    # todo 3: add dropping outliers
+    def is_float(string):
+        try:
+            float(string)
+            return True
+        except ValueError:
+            return False
+
+    def validate_outliers_threshold(param_name: str, params: dict, max_value: float) -> float:
+        value: str = params.get(param_name)
+        if value and is_float(value) and 0 < float(value):
+            return float(value)
+        elif value:
+            raise ParameterError(param_name, value, ['0+', '...', str(max_value)])
+
+    def find_and_drop_outliers(df: pd.DataFrame, threshold: float) -> None:
+        if not threshold:
+            threshold = 3.0
+        z: np.ndarray = np.abs(stats.zscore(df.select_dtypes(include=np.number)))
+        outliers: pd.DataFrame = df[(z > threshold).any(axis=1)]
+        df.drop(outliers.index, inplace=True)
+
+    drop_outliers: str = params.get('drop_outliers')
+    if drop_outliers in drop_outliers_values:
+        find_and_drop_outliers(data, validate_outliers_threshold("outliers_threshold", params, float('inf')))
+    elif drop_outliers:
+        raise ParameterError('drop_outliers', drop_outliers, drop_outliers_values)
 
     # Drop duplicates on demand
-    # todo 4: add dropping duplicates
+    drop_duplicates: str = params.get('drop_duplicates')
+    if drop_duplicates in drop_duplicates_values:
+        data.drop_duplicates(keep=('first' if drop_duplicates == drop_duplicates_values[0] else False), inplace=True)
+        if data.empty:
+            raise ValueError(
+                "The dataset is empty after dropping duplicates. Please adjust the drop_duplicates parameter.")
+    elif drop_duplicates:
+        raise ParameterError('drop_duplicates', drop_duplicates, drop_duplicates_values)
 
     # Convert data types on demand
     # todo 5: add type conversion
@@ -99,3 +140,4 @@ def process_data(file: FileStorage, params: dict) -> pd.DataFrame:
     # todo 8: add numeric data scaling
 
     return data
+# todo 1: refactor code

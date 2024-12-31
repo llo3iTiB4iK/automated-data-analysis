@@ -92,6 +92,18 @@ def home() -> str:
                 <input type="checkbox" name="drop_duplicates">
                 <label for="drop_na">Видалити рядки-дублікати</label>
             </div>
+            <div>
+                <label>
+                    <input type="text" name="datetime_columns" placeholder='column OR ["column1", "column2"]'>
+                    Вкажіть стовпець або список стовпців, що потребують приведення даних до datetime формату (JSON):
+                </label>
+            </div>
+            <div>
+                <label>
+                    <input type="text" name="category_columns" placeholder='column OR ["column1", "column2"]'>
+                    Вкажіть стовпець або список стовпців, що потребують приведення даних до категоріального формату (JSON):
+                </label>
+            </div>
             <input type="submit" value="Upload">
         </form>
         '''
@@ -102,9 +114,9 @@ def upload_file() -> str:
     file: FileStorage = request.files['file']
     params: dict = request.form.to_dict()
     processed_data: pd.DataFrame = process_data(file, params)
-    # todo 9: add analysis of preprocessed data
+    # todo 2: add analysis of preprocessed data
     # analysis_results = analyze_data(processed_data, params)
-    # todo 10: add result-based report generation and its' return
+    # todo 1: add result-based report generation and its' return
     # report_path = generate_report(analysis_results)
     return processed_data.to_html()
 

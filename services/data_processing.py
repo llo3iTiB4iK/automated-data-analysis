@@ -12,6 +12,7 @@ from errors import ParameterError
 drop_na_values: list = ['rows', 'columns']
 drop_duplicates_values: list = ['keep_first', 'with_original']
 drop_outliers_values: list = ['yes']
+join_small_cat_values: list = ['yes']
 
 
 def process_data(file: FileStorage, params: dict) -> pd.DataFrame:
@@ -129,7 +130,7 @@ def process_data(file: FileStorage, params: dict) -> pd.DataFrame:
         except ValueError:
             return False
 
-    def validate_outliers_threshold(param_name: str, params: dict, max_value: float) -> float:
+    def validate_positive_float_threshold(param_name: str, params: dict, max_value: float) -> float:
         value: str = params.get(param_name)
         if value and is_float(value) and 0 < float(value):
             return float(value)
@@ -145,7 +146,7 @@ def process_data(file: FileStorage, params: dict) -> pd.DataFrame:
 
     drop_outliers: str = params.get('drop_outliers')
     if drop_outliers in drop_outliers_values:
-        find_and_drop_outliers(data, validate_outliers_threshold("outliers_threshold", params, float('inf')))
+        find_and_drop_outliers(data, validate_positive_float_threshold("outliers_threshold", params, float('inf')))
     elif drop_outliers:
         raise ParameterError('drop_outliers', drop_outliers, drop_outliers_values)
 
@@ -159,19 +160,76 @@ def process_data(file: FileStorage, params: dict) -> pd.DataFrame:
     elif drop_duplicates:
         raise ParameterError('drop_duplicates', drop_duplicates, drop_duplicates_values)
 
-    # Convert data types on demand
-    # todo 5: add type conversion
+    # Convert data types and process categorical values on demand
+    datetime_columns: str = params.get("datetime_columns")
+    if datetime_columns:
+        try:
+            dt_columns_decoded: Any = json.loads(datetime_columns)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Error occurred when decoding provided JSON: \"{e}\"")
+
+        if isinstance(dt_columns_decoded, str):
+            dt_columns_decoded: list = [dt_columns_decoded]
+        try:
+            for col in dt_columns_decoded:
+                if not isinstance(col, str):
+                    raise TypeError
+                try:
+                    data[col] = pd.to_datetime(data[col])
+                except KeyError:
+                    raise ValueError(f"Column '{col}' to convert to datetime is not found in the DataFrame.")
+                except ValueError:
+                    raise ValueError(f"Column '{col}' could not be converted to datetime. Ensure the column contains "
+                                     f"valid date/time values.")
+        except TypeError:
+            raise ParameterError("datetime_columns", datetime_columns, ["string", "array[string]"])
+
+    category_columns = params.get("category_columns")
+    if category_columns:
+        try:
+            cat_columns_decoded: Any = json.loads(category_columns)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Error occurred when decoding provided JSON: \"{e}\"")
+
+        if isinstance(cat_columns_decoded, str):
+            cat_columns_decoded: list = [cat_columns_decoded]
+        try:
+            for col in cat_columns_decoded:
+                if not isinstance(col, str):
+                    raise TypeError
+                try:
+                    data[col] = data[col].astype('category')
+                except KeyError:
+                    raise ValueError(f"Column '{col}' to convert to category is not found in the DataFrame.")
+                except ValueError:
+                    raise ValueError(f"Column '{col}' could not be converted to category. Ensure the column contains "
+                                     f"valid categorical values or check for unexpected data types.")
+        except TypeError:
+            raise ParameterError("category_columns", category_columns, ["string", "array[string]"])
+
+    # Join small categories into one on demand
+    def combine_rare_categories(df: pd.DataFrame, category_name: str, category_threshold: float) -> None:
+        if not category_name:
+            category_name = "Other"
+        for col_name in df.select_dtypes(include='category').columns:
+            category_counts = df[col_name].value_counts(normalize=True)
+            if category_threshold is None:
+                category_threshold = category_counts.quantile(0.2)
+            rare_categories = category_counts[category_counts <= category_threshold].index
+            df[col_name] = df[col_name].apply(lambda x: category_name if x in rare_categories else x)
+
+    join_small_cat: str = params.get('join_small_cat')
+    if join_small_cat in join_small_cat_values:
+        combine_rare_categories(data, params.get("joined_category_name"),
+                                validate_positive_float_threshold("categories_threshold", params, 1))
+    elif join_small_cat:
+        raise ParameterError('join_small_cat', join_small_cat, join_small_cat_values)
 
     # Convert text data on demand
-    # todo 6: add text data conversion
-
-    # Process categorical variables on demand
-    # todo 7: add categorical variables processing
-    # Using the "one-hot encoding" or "label encoding" method to convert categorical variables into numeric formats.
-    # Об'єднання рідких категорій або категорій, які мають мало спостережень, у одну категорію.
+    # todo 5: add text data conversion
 
     # Scale numeric data on demand
-    # todo 8: add numeric data scaling
+    # todo 4: add numeric data scaling
 
     return data
-# todo 1: refactor code
+# todo 3: refactor code

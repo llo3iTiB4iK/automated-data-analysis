@@ -1,10 +1,12 @@
 import pandas as pd
 import numpy as np
 from scipy import stats
+from sklearn.preprocessing import MaxAbsScaler, MinMaxScaler, StandardScaler
 import sqlite3
 import tempfile
 import os
 import json
+import string
 from typing import Any
 from werkzeug.datastructures.file_storage import FileStorage
 from errors import ParameterError
@@ -13,6 +15,8 @@ drop_na_values: list = ['rows', 'columns']
 drop_duplicates_values: list = ['keep_first', 'with_original']
 drop_outliers_values: list = ['yes']
 join_small_cat_values: list = ['yes']
+scale_numeric_values: list = ['yes']
+scalers: dict = {"max_abs_scaling": MaxAbsScaler, "min_max_scaling": MinMaxScaler, "z_score": StandardScaler}
 
 
 def process_data(file: FileStorage, params: dict) -> pd.DataFrame:
@@ -51,6 +55,85 @@ def process_data(file: FileStorage, params: dict) -> pd.DataFrame:
     if data.empty:
         raise ValueError("The uploaded file contains no data. Please upload a file with valid data.")
 
+    # Perform basic text data unification on demand
+    case_insensitive_columns: str = params.get("case_insensitive_columns")
+    if case_insensitive_columns:
+        try:
+            case_insensitive_columns_decoded: Any = json.loads(case_insensitive_columns)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Error occurred when decoding provided JSON: \"{e}\"")
+
+        if isinstance(case_insensitive_columns_decoded, str):
+            case_insensitive_columns_decoded: list = [case_insensitive_columns_decoded]
+        try:
+            for col in case_insensitive_columns_decoded:
+                if not isinstance(col, str):
+                    raise TypeError
+                try:
+                    data[col] = data[col].str.lower()
+                except KeyError:
+                    raise ValueError(f"Column '{col}' to convert into lowercase is not found in the DataFrame.")
+                except AttributeError:
+                    raise ValueError(f"Column '{col}' could not be converted into lowercase. Ensure the column contains"
+                                     f" string values.")
+        except TypeError:
+            raise ParameterError("case_insensitive_columns", case_insensitive_columns, ["string", "array[string]"])
+
+    clear_punct_columns: str = params.get("clear_punct_columns")
+    if clear_punct_columns:
+        try:
+            clear_punct_columns_decoded: Any = json.loads(clear_punct_columns)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Error occurred when decoding provided JSON: \"{e}\"")
+
+        if isinstance(clear_punct_columns_decoded, str):
+            clear_punct_columns_decoded: list = [clear_punct_columns_decoded]
+        try:
+            for col in clear_punct_columns_decoded:
+                if not isinstance(col, str):
+                    raise TypeError
+                try:
+                    data[col] = data[col].apply(lambda s: s.translate(s.maketrans("", "", string.punctuation)))
+                except KeyError:
+                    raise ValueError(f"Column '{col}' to remove punctuation is not found in the DataFrame.")
+                except AttributeError:
+                    raise ValueError(f"Column '{col}' could not be stripped of punctuation. Ensure the column contains"
+                                     f" string values.")
+        except TypeError:
+            raise ParameterError("clear_punct_columns", clear_punct_columns, ["string", "array[string]"])
+
+    clear_digits_columns: str = params.get("clear_digits_columns")
+    if clear_digits_columns:
+        try:
+            clear_digits_columns_decoded: Any = json.loads(clear_digits_columns)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Error occurred when decoding provided JSON: \"{e}\"")
+
+        if isinstance(clear_digits_columns_decoded, str):
+            clear_digits_columns_decoded: list = [clear_digits_columns_decoded]
+        try:
+            for col in clear_digits_columns_decoded:
+                if not isinstance(col, str):
+                    raise TypeError
+                try:
+                    data[col] = data[col].apply(lambda s: s.translate(s.maketrans("", "", string.digits)))
+                except KeyError:
+                    raise ValueError(f"Column '{col}' to remove digits is not found in the DataFrame.")
+                except AttributeError:
+                    raise ValueError(f"Column '{col}' could not be stripped of digits. Ensure the column contains "
+                                     f"string values.")
+        except TypeError:
+            raise ParameterError("clear_digits_columns", clear_digits_columns, ["string", "array[string]"])
+
+    # Set index on demand
+    index_col: str = params.get('index_col')
+    if index_col in data.columns.values:
+        data.set_index(index_col, inplace=True)
+        if data.empty:
+            raise ValueError("The dataset is empty after setting the index. Please check the selected index column.")
+    elif index_col:
+        raise ParameterError('index_col', index_col, list(data.columns.values))
+
     # Limit row range on demand
     def validate_row_range(param_name: str, params: dict, max_value: int) -> int:
         value: str = params.get(param_name)
@@ -67,15 +150,6 @@ def process_data(file: FileStorage, params: dict) -> pd.DataFrame:
     data = data.iloc[row_range_start:row_range_end:row_range_step]
     if data.empty:
         raise ValueError("The specified row range resulted in an empty dataset. Please adjust the range and try again.")
-
-    # Set index on demand
-    index_col: str = params.get('index_col')
-    if index_col in data.columns.values:
-        data.set_index(index_col, inplace=True)
-        if data.empty:
-            raise ValueError("The dataset is empty after setting the index. Please check the selected index column.")
-    elif index_col:
-        raise ParameterError('index_col', index_col, list(data.columns.values))
 
     # Fill missing values on demand
     def check_fillna_dtype_compatibility(values: dict | int | float | str | bool, df: pd.DataFrame) -> None:
@@ -118,12 +192,12 @@ def process_data(file: FileStorage, params: dict) -> pd.DataFrame:
         data.dropna(axis=params.get('drop_na'), inplace=True)
         if data.empty:
             raise ValueError(
-                "The dataset is empty after dropping missing values. Please adjust the drop_na parameter or dataset.")
+                "The dataset is empty after dropping missing values. Please adjust the 'drop_na' parameter or dataset.")
     elif drop_na:
         raise ParameterError('drop_na', drop_na, drop_na_values)
 
     # Drop outliers on demand
-    def is_float(string):
+    def is_float(string: str) -> bool:
         try:
             float(string)
             return True
@@ -156,7 +230,7 @@ def process_data(file: FileStorage, params: dict) -> pd.DataFrame:
         data.drop_duplicates(keep=('first' if drop_duplicates == drop_duplicates_values[0] else False), inplace=True)
         if data.empty:
             raise ValueError(
-                "The dataset is empty after dropping duplicates. Please adjust the drop_duplicates parameter.")
+                "The dataset is empty after dropping duplicates. Please adjust the 'drop_duplicates' parameter.")
     elif drop_duplicates:
         raise ParameterError('drop_duplicates', drop_duplicates, drop_duplicates_values)
 
@@ -213,7 +287,7 @@ def process_data(file: FileStorage, params: dict) -> pd.DataFrame:
             category_name = "Other"
         for col_name in df.select_dtypes(include='category').columns:
             category_counts = df[col_name].value_counts(normalize=True)
-            if category_threshold is None:
+            if not category_threshold:
                 category_threshold = category_counts.quantile(0.2)
             rare_categories = category_counts[category_counts <= category_threshold].index
             df[col_name] = df[col_name].apply(lambda x: category_name if x in rare_categories else x)
@@ -225,11 +299,25 @@ def process_data(file: FileStorage, params: dict) -> pd.DataFrame:
     elif join_small_cat:
         raise ParameterError('join_small_cat', join_small_cat, join_small_cat_values)
 
-    # Convert text data on demand
-    # todo 5: add text data conversion
-
     # Scale numeric data on demand
-    # todo 4: add numeric data scaling
+    def scale_numeric_data(df: pd.DataFrame, method: str) -> None:
+        scaling_method_values = list(scalers.keys())
+        if not method:
+            method = scaling_method_values[0]
+        numeric_columns: pd.Index = df.select_dtypes(include='number').columns
+        if numeric_columns.empty:
+            raise ValueError("The dataset has no numeric columns. Please adjust the 'scale_numeric' parameter.")
+        if method in scaling_method_values:
+            df[numeric_columns] = scalers[method]().fit_transform(df[numeric_columns])
+        elif method:
+            raise ParameterError("scaling_method", method, scaling_method_values)
+
+    scale_numeric: str = params.get("scale_numeric")
+    if scale_numeric in scale_numeric_values:
+        scale_numeric_data(data, params.get("scaling_method"))
+    elif scale_numeric:
+        raise ParameterError('scale_numeric', scale_numeric, scale_numeric_values)
 
     return data
+# todo 4: for parameters where columns are listed add option to include all columns with *
 # todo 3: refactor code

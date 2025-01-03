@@ -10,17 +10,19 @@ scalers: dict = {"max_abs_scaling": MaxAbsScaler, "min_max_scaling": MinMaxScale
 
 
 def apply_str_column_operations(df: pd.DataFrame, columns: list, transform_fn: callable,
-                                apply_to_column: bool = False) -> None:
-    for col in columns:
-        if col not in df.columns:
-            raise ValueError(f"Column '{col}' not found in the DataFrame.")
-        try:
-            if apply_to_column:
-                df[col] = transform_fn(df[col])
-            else:
-                df[col] = transform_fn(df[col]) if apply_to_column else df[col].apply(transform_fn)
-        except (ValueError, AttributeError):
-            raise ValueError(f"Error processing column '{col}'. Ensure the column contains appropriate values.")
+                                apply_to_column: bool = False, param_name: str = "") -> None:
+    if columns:
+        for col in columns:
+            if col not in df.columns:
+                raise ValueError(f"Column '{col}' not found in the DataFrame.")
+            try:
+                if apply_to_column:
+                    df[col] = transform_fn(df[col])
+                else:
+                    df[col] = transform_fn(df[col]) if apply_to_column else df[col].apply(transform_fn)
+            except (ValueError, AttributeError):
+                raise ParameterError(param_name, str(columns), ["A column or list of columns that contain data, "
+                                                                "appropriate for transformation"])
 
 
 def select_rows(df: pd.DataFrame, start: int = None, stop: int = None, step: int = None):

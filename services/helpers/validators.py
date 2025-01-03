@@ -17,12 +17,6 @@ def is_convertible(value: str, target_type: type) -> bool:
 
 def is_positive_number(value: str, max_value: int | float = float('inf'), number_type: type = float) -> int | float:
     return value and is_convertible(value, number_type) and 0 < number_type(value) <= max_value
-# def validate_positive_number(param_name: str, params: dict, max_value: int | float = float('inf'), number_type: type = float) -> int | float:
-#     value: str = params.get(param_name)
-#     if value and is_convertible(value, number_type) and 0 < number_type(value) <= max_value:
-#         return number_type(value)
-#     elif value:
-#         raise ParameterError(param_name, value, [f'Any {number_type} number from interval (0; {str(max_value)}]]'])
 
 
 def check_fillna_dtype_compatibility(values: dict | int | float | str | bool, df: pd.DataFrame) -> None:

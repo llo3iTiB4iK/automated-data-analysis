@@ -12,9 +12,13 @@ def load_and_validate_data(file: FileStorage, params: dict) -> pd.DataFrame:
 
 
 def apply_column_operations(data: pd.DataFrame, params: dict) -> pd.DataFrame:
-    do.apply_str_column_operations(data, ph.retrieve_columns(data, params, "case_insensitive_columns"), lambda s: s.lower() if pd.notna(s) else s)
-    do.apply_str_column_operations(data, ph.retrieve_columns(data, params, "clear_punct_columns"), lambda s: s.translate(str.maketrans('', '', string.punctuation)))
-    do.apply_str_column_operations(data, ph.retrieve_columns(data, params, "clear_digits_columns"), lambda s: s.translate(str.maketrans('', '', string.digits)))
+    operations = [
+        ("case_insensitive_columns", lambda s: s.lower() if pd.notna(s) else s),
+        ("clear_punct_columns", lambda s: s.translate(str.maketrans('', '', string.punctuation))),
+        ("clear_digits_columns", lambda s: s.translate(str.maketrans('', '', string.digits))),
+    ]
+    for param_name, operation in operations:
+        do.apply_str_column_operations(data, ph.retrieve_columns(data, params, param_name), operation, param_name=param_name)
     return data
 
 
@@ -48,8 +52,8 @@ def handle_outliers_and_duplicates(data: pd.DataFrame, params: dict) -> pd.DataF
 
 
 def process_specific_column_types(data: pd.DataFrame, params: dict) -> pd.DataFrame:
-    do.apply_str_column_operations(data, ph.retrieve_columns(data, params, "datetime_columns"), pd.to_datetime)
-    do.apply_str_column_operations(data, ph.retrieve_columns(data, params, "category_columns"), lambda col: col.astype('category'), True)
+    do.apply_str_column_operations(data, ph.retrieve_columns(data, params, "datetime_columns"), pd.to_datetime, param_name="datetime_columns")
+    do.apply_str_column_operations(data, ph.retrieve_columns(data, params, "category_columns"), lambda col: col.astype('category'), True, param_name="category_columns")
     po.process_param_with_valid_values("join_small_cat", params, ['yes'], lambda _: do.combine_rare_categories(data, params.get("joined_category_name"), ph.retrieve_positive_number("categories_threshold", params, 1)))
     return data
 

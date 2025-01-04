@@ -1,3 +1,4 @@
+
 def missing_parameter(error: KeyError) -> tuple:
     return {
         "error": "bad_request",

@@ -3,119 +3,301 @@
 <head>
     <meta charset="UTF-8">
     <title>Завантажте файл</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            padding: 0;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin: 20px 0;
+        }
+        fieldset {
+            text-align: left;
+            width: 85%;
+            margin: 15px auto;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+        label {
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"],
+        input[type="number"],
+        input[type="file"],
+        textarea,
+        select {
+            min-width: 30%;
+            padding: 8px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        input[type="submit"] {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 10px 15px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+        form {
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
 <!doctype html>
     <h1>Аналіз набору даних</h1>
 
     <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
-        <label>
-            <input type="file" name="file">
-            Файл в форматі CSV, XLS/XLSX, JSON або DB (SQLite)
-        </label>
-
-        <div>
+        <fieldset>
             <label>
-                <input type="text" name="sep">
-                Роздільник значень, якщо відмінний від коми (для CSV файлів)
-            </label>
-        </div>
-
-        <div>
-            <label>
-                <input type="text" name="thousands">
-                Роздільник тисяч, якщо є (для CSV або EXCEL файлів)
-            </label>
-        </div>
-
-        <div>
-            <label>
-                <input type="text" name="decimal">
-                Символ десяткової крапки, якщо відмінний від крапки (для CSV або EXCEL файлів)
-            </label>
-        </div>
-
-        <div>
-            <label>
-                <input type="text" name="sheet_name">
-                Назва листа, якщо не перший з доступних (для EXCEL файлів)
-            </label>
-        </div>
-
-        <div>
-            <label>
-                <input type="text" name="table_name">
-                Назва таблиці в БД (для DB файлів)
-            </label>
-        </div>
-
-        <div>
-            <label>
-                <textarea name="fill_na_values" rows="5" placeholder='value OR {"column_name1": "value1", "column_name2": "value2"}'></textarea>
-                Вкажіть словник або значення для заповнення пропущених значень (формат JSON):
-            </label>
-        </div>
-
-        <div>
-            <label>
-                <input type="checkbox" name="allow_type_conversion" value="true">
-                Дозволити перетворення типів
-            </label>
-        </div>
-
-        <div>
-            <label>
-                <input type="checkbox" name="ffill" value="true">
-                Заповнити пропущені значення попереднім дійсним значенням стовпця
-            </label>
-        </div>
-
-        <div>
-            <label>
-                <input type="checkbox" name="bfill" value="true">
-                Заповнити пропущені значення наступним дійсним значенням стовпця
-            </label>
-        </div>
-
-        <div>
-            <label>
-                <input type="radio" name="drop_na" value="" checked>
-                Не видаляти пропущених даних
+                <input type="file" name="file">
+                Файл в форматі CSV, XLS/XLSX, JSON або DB (SQLite)
             </label>
 
+            <div>
+                <label>
+                    <input type="text" name="sep">
+                    Роздільник значень, якщо відмінний від коми (для CSV файлів)
+                </label>
+            </div>
+
+            <div>
+                <label>
+                    <input type="text" name="thousands">
+                    Роздільник тисяч, якщо є (для CSV або EXCEL файлів)
+                </label>
+            </div>
+
+            <div>
+                <label>
+                    <input type="text" name="decimal">
+                    Символ десяткової крапки, якщо відмінний від крапки (для CSV або EXCEL файлів)
+                </label>
+            </div>
+
+            <div>
+                <label>
+                    <input type="text" name="sheet_name">
+                    Назва листа, якщо не перший з доступних (для EXCEL файлів)
+                </label>
+            </div>
+
+            <div>
+                <label>
+                    <input type="text" name="table_name">
+                    Назва таблиці в БД (для DB файлів)
+                </label>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <div>
+                <label>
+                    <input type="text" name="case_insensitive_columns" placeholder='column OR ["column1", "column2"]'>
+                    Вкажіть стовпець або список стовпців, що потребують приведення тексту до нижнього регістру (JSON)
+                </label>
+            </div>
+
+            <div>
+                <label>
+                    <input type="text" name="clear_punct_columns" placeholder='column OR ["column1", "column2"]'>
+                    Вкажіть стовпець або список стовпців, що потребують очищення тексту від пунктуації (JSON)
+                </label>
+            </div>
+
+            <div>
+                <label>
+                    <input type="text" name="clear_digits_columns" placeholder='column OR ["column1", "column2"]'>
+                    Вкажіть стовпець або список стовпців, що потребують очищення тексту від цифр (JSON)
+                </label>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <div>
+                <label>
+                    <input type="number" name="row_range_start">
+                    Вкажіть номер рядка, від якого вибрати дані
+                </label>
+            </div>
+
+            <div>
+                <label>
+                    <input type="number" name="row_range_end">
+                    Вкажіть номер рядка, до якого вибрати дані
+                </label>
+            </div>
+
+            <div>
+                <label>
+                    <input type="number" name="row_range_step">
+                    Вкажіть крок, з яким вибрати рядки даних
+                </label>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <div>
+                <label>
+                    <input type="text" name="index_col">
+                    Вкажіть назву стовпця, який містить індекс:
+                </label>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <div>
+                <label>
+                    <textarea name="fill_na_values" rows="5" placeholder='value OR {"column_name1": "value1", "column_name2": "value2"}'></textarea>
+                    Вкажіть словник або значення для заповнення пропущених значень (формат JSON):
+                </label>
+            </div>
+
+            <div>
+                <label>
+                    <input type="checkbox" name="allow_type_conversion" value="yes">
+                    Дозволити перетворення типів
+                </label>
+            </div>
+
+            <div>
+                <label>
+                    <input type="checkbox" name="ffill" value="yes">
+                    Заповнити пропущені значення попереднім дійсним значенням стовпця
+                </label>
+            </div>
+
+            <div>
+                <label>
+                    <input type="checkbox" name="bfill" value="yes">
+                    Заповнити пропущені значення наступним дійсним значенням стовпця
+                </label>
+            </div>
+
+            <div>
+                <label>
+                    <input type="radio" name="drop_na" value="" checked>
+                    Не видаляти пропущених даних
+                </label>
+
+                <label>
+                    <input type="radio" name="drop_na" value="rows">
+                    Видалити рядки з пропущеними даними
+                </label>
+
+                <label>
+                    <input type="radio" name="drop_na" value="columns">
+                    Видалити стовпці з пропущеними даними
+                </label><br>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <div>
+                <label>
+                    <input type="checkbox" name="drop_outliers" value="yes">
+                    Видалити рядки з викидами (аномальними даними) у числових стовпцях
+                </label>
+            </div>
+
+            <div>
+                <label>
+                    <input type="number" name="outliers_threshold" step="0.01">
+                    Вкажіть поріг для визначення викидів у числових стовпцях
+                </label>
+            </div>
+
+            <div>
+                <label>
+                    <input type="radio" name="drop_duplicates" value="" checked>
+                    Не видаляти рядки-дублікати
+                </label>
+
+                <label>
+                    <input type="radio" name="drop_duplicates" value="keep_first">
+                    Видалити рядки-дублікати та залишити перший з них
+                </label>
+
+                <label>
+                    <input type="radio" name="drop_duplicates" value="with_original">
+                    Видалити всі рядки-дублікати
+                </label><br>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <div>
+                <label>
+                    <input type="text" name="datetime_columns" placeholder='column OR ["column1", "column2"]'>
+                    Вкажіть стовпець або список стовпців, що потребують приведення даних до datetime формату (JSON):
+                </label>
+            </div>
+
+            <div>
+                <label>
+                    <input type="text" name="category_columns" placeholder='column OR ["column1", "column2"]'>
+                    Вкажіть стовпець або список стовпців, що потребують приведення даних до категоріального формату (JSON):
+                </label>
+            </div>
+
+            <div>
+                <label>
+                    <input type="checkbox" name="join_small_cat" value="yes">
+                    Об'єднати малі категорії даних
+                </label>
+            </div>
+
+            <div>
+                <label>
+                    <input type="text" name="joined_category_name">
+                    Вкажіть назву категорії, утвореної шляхом об'єднання малих категорій даних
+                </label>
+            </div>
+
+            <div>
+                <label>
+                    <input type="number" name="categories_threshold" step="0.01">
+                    Вкажіть максимальну відносну частоту, при якій категорія вважається малою
+                </label>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <div>
+                <label>
+                    <input type="checkbox" name="scale_numeric" value="yes">
+                    Масштабувати числові значення
+                </label>
+            </div>
+
             <label>
-                <input type="radio" name="drop_na" value="rows">
-                Видалити рядки з пропущеними даними
+                <select name="scaling_method">
+                    <option value="">--Виберіть значення зі списку доступних--</option>
+                    <option value="max_abs_scaling">Масштабування за максимальним абсолютним значенням</option>
+                    <option value="min_max_scaling">Масштабування в діапазоні мінімум-максимум</option>
+                    <option value="z_score">Масштабування за z-оцінкою (стандартизація)</option>
+                </select>
+                Оберіть метод масштабування
             </label>
+        </fieldset>
 
-            <label>
-                <input type="radio" name="drop_na" value="columns">
-                Видалити стовпці з пропущеними даними
-            </label><br>
-        </div>
-
-        <div>
-            <label>
-                <input type="checkbox" name="drop_duplicates">
-                Видалити рядки-дублікати
-            </label>
-        </div>
-
-        <div>
-            <label>
-                <input type="text" name="datetime_columns" placeholder='column OR ["column1", "column2"]'>
-                Вкажіть стовпець або список стовпців, що потребують приведення даних до datetime формату (JSON):
-            </label>
-        </div>
-
-        <div>
-            <label>
-                <input type="text" name="category_columns" placeholder='column OR ["column1", "column2"]'>
-                Вкажіть стовпець або список стовпців, що потребують приведення даних до категоріального формату (JSON):
-            </label>
-        </div>
-
-        <input type="submit" value="Upload">
+        <input type="submit" value="Надіслати">
     </form>
 </body>
 </html>

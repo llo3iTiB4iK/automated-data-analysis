@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-from scipy import stats
 from sklearn.preprocessing import MaxAbsScaler, MinMaxScaler, StandardScaler
 from typing import Any
 from services.helpers.validators import check_fillna_dtype_compatibility
@@ -43,7 +42,8 @@ def fill_missing_values(df: pd.DataFrame, fill_values: Any, allow_type_conversio
 def find_and_drop_outliers(df: pd.DataFrame, threshold: float) -> None:
     if not threshold:
         threshold = 3.0
-    z: np.ndarray = np.abs(stats.zscore(df.select_dtypes(include=np.number)))
+    numeric_data: pd.DataFrame = df.select_dtypes(include=np.number)
+    z: np.ndarray = np.abs((numeric_data - numeric_data.mean()) / numeric_data.std())
     outliers: pd.DataFrame = df[(z > threshold).any(axis=1)]
     df.drop(outliers.index, inplace=True)
 

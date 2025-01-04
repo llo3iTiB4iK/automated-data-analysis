@@ -11,7 +11,7 @@ app.register_error_handler(ValueError, eh.incorrect_parameter)
 
 @app.route("/")
 def home() -> str:
-    return render_template("index.html")  # TODO: make template have interface for all parameters
+    return render_template("index.html")
 
 
 @app.route("/analyze", methods=["POST"])

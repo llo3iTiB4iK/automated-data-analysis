@@ -3,6 +3,7 @@ from flask import Flask, request, render_template
 from werkzeug.datastructures import FileStorage
 import error_handlers as eh
 from services.data_processing import process_data
+from services.data_analysis import analyze_data
 
 app: Flask = Flask(__name__)
 app.register_error_handler(KeyError, eh.missing_parameter)
@@ -15,15 +16,14 @@ def home() -> str:
 
 
 @app.route("/analyze", methods=["POST"])
-def upload_file() -> str:
+def upload_file() -> dict:
     file: FileStorage = request.files['file']
     params: dict = request.form.to_dict()
     processed_data: pd.DataFrame = process_data(file, params)
-    # TODO: add analysis of preprocessed data
-    # analysis_results = analyze_data(processed_data, params)
+    analysis_results: dict = analyze_data(processed_data, params)
     # TODO: add result-based report generation and its' return
     # report_path = generate_report(analysis_results)
-    return processed_data.to_html()
+    return analysis_results
 
 
 if __name__ == "__main__":

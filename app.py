@@ -20,10 +20,10 @@ def upload_file() -> dict:
     file: FileStorage = request.files['file']
     params: dict = request.form.to_dict()
     processed_data: pd.DataFrame = process_data(file, params)
-    analysis_results: dict = analyze_data(processed_data, params)
+    analysis_results: dict = analyze_data(processed_data)
     # TODO: add result-based report generation and its' return
     # report_path = generate_report(analysis_results)
-    return analysis_results
+    return analysis_results["info"]
 
 
 if __name__ == "__main__":

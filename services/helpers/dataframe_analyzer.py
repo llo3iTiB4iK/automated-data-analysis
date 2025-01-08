@@ -29,8 +29,8 @@ class DataFrameAnalyzer:
         if len(self.numerical_columns) > 1:
             plot_funcs.append(lambda: sns.heatmap(self.df.corr(numeric_only=True), cmap='coolwarm', annot=True).
                               set_title("Numeric columns correlation heatmap"))
-            plot_funcs.append(lambda: sns.pairplot(self.df[self.numerical_columns], kind='reg').fig.suptitle(
-                "Pairwise relationships of numeric columns", y=1.02))
+            plot_funcs.append(lambda: sns.pairplot(self.df[self.numerical_columns], kind='reg').figure.suptitle(
+                "Pairwise relationships of numeric columns"))
 
         return plot_funcs
 
@@ -45,14 +45,14 @@ class DataFrameAnalyzer:
                 f"Category distribution of '{c}'"))
 
         for col in self.boolean_columns:
-            plot_funcs.append(lambda c=col: self.df[c].plot.pie(title=f"Distribution of '{c}' values"))
+            plot_funcs.append(lambda c=col: self.df[c].value_counts().plot.pie(title=f"Distribution of '{c}' values"))
 
         for col in self.datetime_columns:
             plot_funcs.append(lambda c=col: sns.histplot(self.df[c], kde=True).set_title(
                 f"Distribution of '{c}' over time"))
 
         for col in self.string_columns:
-            plot_funcs.append(lambda c=col: sns.histplot(self.df[c].dropna().apply(len)).set_title(
+            plot_funcs.append(lambda c=col: sns.histplot(self.df[c].dropna().apply(lambda x: len(str(x)))).set_title(
                 f"Text length distribution for '{c}'"))
             plot_funcs.append(lambda c=col: sns.barplot(x=self.df[c].value_counts().head(10).index,
                                                      y=self.df[c].value_counts().head(10).values).set_title(
@@ -64,7 +64,7 @@ class DataFrameAnalyzer:
         plot_funcs: list = []
 
         for num_col in self.numerical_columns:
-            for cat_col in (self.categorical_columns + self.boolean_columns):
+            for cat_col in (self.categorical_columns.tolist() + self.boolean_columns.tolist()):
                 plot_funcs.append(lambda nc=num_col, cc=cat_col: sns.histplot(self.df, x=nc, hue=cc, kde=True).
                                   set_title(f"Distribution of '{nc}' by '{cc}'"))
                 plot_funcs.append(lambda nc=num_col, cc=cat_col: sns.barplot(self.df, x=cc, y=nc).set_title(
@@ -72,8 +72,8 @@ class DataFrameAnalyzer:
                 plot_funcs.append(lambda nc=num_col, cc=cat_col: sns.boxplot(self.df, x=cc, y=nc).set_title(
                         f"Distribution of '{nc}' values by '{cc}' categories"))
 
-        for cat_col1 in (self.categorical_columns + self.boolean_columns):
-            for cat_col2 in (self.categorical_columns + self.boolean_columns):
+        for cat_col1 in (self.categorical_columns.tolist() + self.boolean_columns.tolist()):
+            for cat_col2 in (self.categorical_columns.tolist() + self.boolean_columns.tolist()):
                 if cat_col1 != cat_col2:
                     plot_funcs.append(lambda cc1=cat_col1, cc2=cat_col2: sns.countplot(self.df, x=cc1, hue=cc2).
                                       set_title(f"Category distribution of '{cc1}' by '{cc2}'"))

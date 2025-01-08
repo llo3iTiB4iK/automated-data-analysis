@@ -6,6 +6,12 @@ from werkzeug.datastructures.file_storage import FileStorage
 from errors import ParameterError
 
 
+def create_temp_file(file_content: str | bytes, file_format: str = None) -> str:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=file_format) as temp_file:
+        temp_file.write(file_content)
+        return temp_file.name
+
+
 def extract_kwargs(params: dict, keys: list) -> dict:
     return {key: params[key] for key in keys if key in params and params[key]}
 
@@ -26,10 +32,7 @@ def load_json(file: FileStorage, _: dict) -> pd.DataFrame:
 
 def load_sqlite(file: FileStorage, params: dict) -> pd.DataFrame:
     table_name: str = params['table_name']
-
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".db") as tmp_file:
-        tmp_file.write(file.read())
-        temp_file_path: str = tmp_file.name
+    temp_file_path = create_temp_file(file.read(), ".db")
 
     cnx: sqlite3.Connection = sqlite3.connect(temp_file_path)
     try:

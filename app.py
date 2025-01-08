@@ -1,9 +1,11 @@
 import pandas as pd
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, send_file, Response
 from werkzeug.datastructures import FileStorage
+from io import BytesIO
 import error_handlers as eh
 from services.data_processing import process_data
 from services.data_analysis import analyze_data
+from services.report_generation import generate_report
 
 app: Flask = Flask(__name__)
 app.register_error_handler(KeyError, eh.missing_parameter)
@@ -16,14 +18,14 @@ def home() -> str:
 
 
 @app.route("/analyze", methods=["POST"])
-def upload_file() -> dict:
+def upload_file() -> Response:
     file: FileStorage = request.files['file']
     params: dict = request.form.to_dict()
     processed_data: pd.DataFrame = process_data(file, params)
     analysis_results: dict = analyze_data(processed_data)
-    # TODO: add result-based report generation and its' return
-    # report_path = generate_report(analysis_results)
-    return analysis_results["info"]
+    pdf_buffer: BytesIO = generate_report(analysis_results)
+    # TODO: analyze and optimize performance
+    return send_file(pdf_buffer, mimetype='application/pdf', as_attachment=False, download_name='report.pdf')
 
 
 if __name__ == "__main__":

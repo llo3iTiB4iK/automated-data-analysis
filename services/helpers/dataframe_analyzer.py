@@ -21,16 +21,12 @@ class DataFrameAnalyzer:
             counts_df: pd.DataFrame = pd.DataFrame({
                 'Missing values': self.df.isna().sum(),
                 'Non-missing values': self.df.notna().sum()
-            }).reset_index().melt(id_vars='index', var_name='Type', value_name='Count')
-            plot_funcs.append(
-                lambda: sns.barplot(counts_df, x='Count', y='index', hue='Type', orient='h').set_title(
-                    "Missing values by column"))
+            })
+            plot_funcs.append(lambda: counts_df.plot(kind='barh', stacked=True, title="Missing values by column"))
 
-        if len(self.numerical_columns) > 1:
-            plot_funcs.append(lambda: sns.heatmap(self.df.corr(numeric_only=True), cmap='coolwarm', annot=True).
-                              set_title("Numeric columns correlation heatmap"))
-            plot_funcs.append(lambda: sns.pairplot(self.df[self.numerical_columns], kind='reg').figure.suptitle(
-                "Pairwise relationships of numeric columns"))
+        # if len(self.numerical_columns) > 1:
+        #     plot_funcs.append(lambda: sns.heatmap(self.df.corr(numeric_only=True), cmap='coolwarm', annot=True).
+        #                       set_title("Numeric columns correlation heatmap"))
 
         return plot_funcs
 

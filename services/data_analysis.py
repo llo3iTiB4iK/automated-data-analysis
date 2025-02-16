@@ -8,8 +8,8 @@ def analyze_data(data: pd.DataFrame) -> dict:
     plot_funcs: list = []
 
     plot_funcs.extend(analyzer.get_overall_dataframe_plots())
-    plot_funcs.extend(analyzer.get_single_column_plots())
-    plot_funcs.extend(analyzer.get_two_column_plots())
+
+    #асоціація, регресія, класифікація, кластеризація
 
     return {
         "info": analyzer.get_summary(),

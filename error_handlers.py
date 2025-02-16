@@ -1,4 +1,5 @@
 from werkzeug.exceptions import MethodNotAllowed
+import os
 
 
 def missing_parameter(error: KeyError) -> tuple:
@@ -20,3 +21,10 @@ def method_not_allowed(error: MethodNotAllowed) -> tuple:
         "error": "method_not_allowed",
         "error_description": f"This endpoint only supports the following HTTP methods: {error.valid_methods}"
     }, 405
+
+
+def file_not_found(error: FileNotFoundError) -> tuple:
+    return {
+        "error": "dataset_not_found",
+        "error_description": f"Dataset with ID '{os.path.basename(error.filename)}' not found in storage."
+    }, 404

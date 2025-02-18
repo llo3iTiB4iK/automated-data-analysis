@@ -9,8 +9,6 @@ def analyze_data(data: pd.DataFrame) -> dict:
 
     plot_funcs.extend(analyzer.get_overall_dataframe_plots())
 
-    #асоціація, регресія, класифікація, кластеризація
-
     return {
         "info": analyzer.get_summary(),
         "describe": analyzer.get_description(),

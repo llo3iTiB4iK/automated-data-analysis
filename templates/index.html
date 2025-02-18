@@ -42,7 +42,7 @@
             font-size: 14px;
             box-sizing: border-box;
         }
-        input[type="submit"] {
+        input[type="submit"], #download_button {
             background-color: #007BFF;
             color: white;
             border: none;
@@ -51,19 +51,35 @@
             font-size: 20px;
             cursor: pointer;
         }
+        #download_button {
+            background-color: green;
+        }
         input[type="submit"]:hover {
             background-color: #0056b3;
         }
         form {
             text-align: center;
         }
+        .error-message, .success-message {
+            width: 85%;
+            margin: auto;
+            color: red;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .success-message {
+            color: blue;
+        }
     </style>
 </head>
 <body>
-<!doctype html>
     <h1>Аналіз набору даних</h1>
 
-    <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
+    <div id="data_field" class="success-message" hidden></div>
+
+    <div id="error_field" class="error-message" hidden></div>
+
+    <form id="upload_form" enctype="multipart/form-data" data-next_form="preprocess_form">
         <fieldset>
             <label>
                 <input type="file" name="file">
@@ -106,6 +122,10 @@
             </div>
         </fieldset>
 
+        <input type="submit" value="Надіслати файл з даними">
+    </form>
+
+    <form id="preprocess_form" data-next_form="recommendations_form" hidden>
         <fieldset>
             <div>
                 <label>
@@ -297,7 +317,88 @@
             </label>
         </fieldset>
 
-        <input type="submit" value="Надіслати">
+        <input type="submit" value="Виконати попередню обробку">
     </form>
+
+    <form id="recommendations_form" hidden>
+        <fieldset>
+            <label>
+                <select name="analysis_task">
+                    <option value="">--Виберіть значення зі списку доступних--</option>
+                    <option value="association">Асоціація</option>
+                    <option value="regression">Регресія</option>
+                    <option value="classification">Класифікація</option>
+                    <option value="clusterization">Кластеризація</option>
+                </select>
+                Оберіть задачу машинного навчання
+            </label>
+
+            <div>
+                <label>
+                    <input type="text" list="columns" name="target_col" autocomplete="off">
+                    <datalist id="columns"></datalist>
+                    Вкажіть назву цільового стовпця (можна обрати з випадаючого списку):
+                </label>
+            </div>
+        </fieldset>
+
+        <input type="submit" value="Отримати рекомендації">
+        <a id="download_button" target="_blank">Завантажити набір даних</a>
+    </form>
+
+    <form id="info_form" data-next_form="preprocess_form">
+        <fieldset>
+            <label>
+                <input type="text" name="dataset_id">
+                Тут можна вказати ID завантаженого раніше датасету (+ ENTER)
+            </label>
+        </fieldset>
+    </form>
+
+    <script>
+        let nextFormAction = "{{ url_for('upload_file') }}";
+        const errorDiv = document.getElementById("error_field");
+        const dataDiv = document.getElementById("data_field");
+
+        document.addEventListener("submit", function(event) {
+            const form = event.target;
+            if (!form.matches("form")) return;
+
+            if (!form.dataset.next_form) return;
+
+            event.preventDefault();
+
+            let formData = new FormData(form);
+
+            ((form.id === "info_form")
+                ? fetch(`{{ url_for('get_info', dataset_id="") }}${document.querySelector('input[name="dataset_id"]').value}`, {})
+                : fetch(nextFormAction, {
+                    method: "POST",
+                    body: formData
+                }))
+            .then(response => response.json())
+            .then(data => {
+                errorDiv.hidden = !data.error;
+                dataDiv.hidden = Boolean(data.error);
+                if (data.error) {
+                    errorDiv.textContent = data.error_description || "Сталася невідома помилка.";
+                    errorDiv.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
+                } else {
+                    dataDiv.textContent = JSON.stringify(data);
+                    for (let form_ of document.getElementsByTagName("form")) {
+                        form_.hidden = !(form_.id === form.dataset.next_form | form_.id === "info_form")
+                    }
+                    document.getElementById("columns").innerHTML = "";
+                    for (let col of Object.keys(data.metadata.columns)) {
+                        document.getElementById("columns").innerHTML += `<option value="${col}" />`;
+                    }
+                    nextFormAction = data.next_step;
+                    document.getElementById("download_button").href = `{{ url_for('download_dataset', dataset_id="") }}${data.dataset_id}`;
+                    document.getElementById("recommendations_form").action = `{{ url_for('get_recommendations', dataset_id="") }}${data.dataset_id}`;
+                }
+            })
+            .catch(error => console.error("Помилка запиту:", error));
+        });
+    </script>
 </body>
 </html>

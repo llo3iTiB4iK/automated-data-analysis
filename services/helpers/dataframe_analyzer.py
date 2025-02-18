@@ -85,7 +85,7 @@ class DataFrameAnalyzer:
         return f"Data has {len(self.df)} rows; contains {len(self.numerical_columns)} numerical columns, " \
                f"{len(self.categorical_columns)} categorical columns, {len(self.boolean_columns)} boolean columns, " \
                f"{len(self.datetime_columns)} datetime columns and {len(self.string_columns)} string columns.\n" \
-               f"Duplicate rows were{'' if self.df.duplicated().any() else ' not '}found.\n" \
+               f"Duplicate rows were{'' if self.df.duplicated().any() else ' not'} found.\n" \
                f"Missing values share = {round(self.df.isna().values.sum() / self.df.size * 100, 2)}% ."
 
     def get_description(self) -> str:

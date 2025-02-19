@@ -1,4 +1,5 @@
-from werkzeug.exceptions import MethodNotAllowed
+from werkzeug.exceptions import MethodNotAllowed, RequestEntityTooLarge
+import errno
 
 
 def missing_parameter(error: KeyError) -> tuple:
@@ -19,4 +20,24 @@ def method_not_allowed(error: MethodNotAllowed) -> tuple:
     return {
         "error": "method_not_allowed",
         "error_description": f"This endpoint only supports the following HTTP methods: {error.valid_methods}"
-    }, 405
+    }, error.code
+
+
+def file_too_large(error: RequestEntityTooLarge) -> tuple:
+    return {
+        "error": "file_too_large",
+        "error_description": "The uploaded file exceeds the maximum allowed size."
+    }, error.code
+
+
+def failed_to_store(error: OSError) -> tuple:
+    if error.errno == errno.ENOSPC:
+        return {
+            "error": "storage_full",
+            "error_description": "Insufficient storage space. Unable to store the dataset. Try again later."
+        }, 507
+    else:
+        return {
+            "error": "storage_error",
+            "error_description": "An unexpected storage error occurred. Check your request or try again later."
+        }, 500

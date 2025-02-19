@@ -30,32 +30,6 @@ class DataFrameAnalyzer:
 
         return plot_funcs
 
-    def get_single_column_plots(self) -> list:
-        plot_funcs: list = []
-
-        for col in self.numerical_columns:
-            plot_funcs.append(lambda c=col: sns.boxplot(x=self.df[c]).set_title(f"Distribution of '{c}'"))
-
-        for col in self.categorical_columns:
-            plot_funcs.append(lambda c=col: sns.countplot(self.df, x=c, hue=c).set_title(
-                f"Category distribution of '{c}'"))
-
-        for col in self.boolean_columns:
-            plot_funcs.append(lambda c=col: self.df[c].value_counts().plot.pie(title=f"Distribution of '{c}' values"))
-
-        for col in self.datetime_columns:
-            plot_funcs.append(lambda c=col: sns.histplot(self.df[c], kde=True).set_title(
-                f"Distribution of '{c}' over time"))
-
-        for col in self.string_columns:
-            plot_funcs.append(lambda c=col: sns.histplot(self.df[c].dropna().apply(lambda x: len(str(x)))).set_title(
-                f"Text length distribution for '{c}'"))
-            plot_funcs.append(lambda c=col: sns.barplot(x=self.df[c].value_counts().head(10).index,
-                                                     y=self.df[c].value_counts().head(10).values).set_title(
-                f"Most frequent values in '{c}'"))
-
-        return plot_funcs
-
     def get_two_column_plots(self) -> list:
         plot_funcs: list = []
 

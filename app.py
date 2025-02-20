@@ -100,4 +100,4 @@ def get_recommendations(dataset_id: str) -> Response:
 if __name__ == "__main__":
     scheduler.add_job(delete_old_files, "interval", hours=1)
     scheduler.start()
-    app.run(debug=True, use_reloader=False)
+    app.run(debug=True)

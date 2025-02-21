@@ -32,4 +32,6 @@ def get_data_report(data: pd.DataFrame, params: dict) -> BinaryIO:
     report.add_dataframe(df=data.describe(exclude=['object', 'category', 'bool']), title="Numerical Data Stats:")
     report.add_dataframe(df=data.describe(include=['object', 'category', 'bool']), title="Non-Numerical Data Stats:")
 
+    # TODO: add recommendations based on analysis task and target column
+
     return report.to_bytes()

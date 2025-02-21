@@ -3,6 +3,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from fpdf import FPDF
 from io import BytesIO
+from datetime import datetime
 
 matplotlib.use('Agg')
 
@@ -11,13 +12,23 @@ class DataFrameReport(FPDF):
 
     def __init__(self):
         super().__init__()
+        self.create_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.add_page()
 
     def header(self):
-        # todo: add nice header
-        self.add_text("123")
+        self.set_font('Arial', 'B', 15)
+        self.cell(text="Data Analysis Report", center=True)
+        self.set_font('Arial', 'I', 10)
+        self.cell(0, 10, f"Generated on: {self.create_time}", ln=True, align="R")
+        self.cell(0, 0, "", "T")
+        self.ln(5)
 
-    def add_text(self, text: str, monospaced: bool = False) -> None:
+    def footer(self):
+        self.set_y(-15)
+        self.set_font('Arial', 'I', 10)
+        self.cell(w=0, text=f'Page {self.page_no()}', align='C')
+
+    def add_text(self, text: str = "", monospaced: bool = False) -> None:
         if monospaced:
             self.set_font("Courier", size=12)
         else:
@@ -34,6 +45,7 @@ class DataFrameReport(FPDF):
         for start in range(0, len(df.columns), max_cols):
             chunk: pd.DataFrame = df.iloc[:, start:start + max_cols]
             self.add_text(text='\n'+chunk.to_string(header=col_names), monospaced=True)
+        self.add_text()
 
     def add_plot(self) -> None:
         img_buf: BytesIO = BytesIO()

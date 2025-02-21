@@ -1,3 +1,4 @@
+from flask import url_for
 from werkzeug.exceptions import MethodNotAllowed, RequestEntityTooLarge
 import errno
 
@@ -34,7 +35,8 @@ def failed_to_store(error: OSError) -> tuple:
     if error.errno == errno.ENOSPC:
         return {
             "error": "storage_full",
-            "error_description": "Insufficient storage space. Unable to store the dataset. Try again later."
+            "error_description": f"Insufficient storage space. Unable to store the dataset. Try again later.\n"
+                                 f"Alternatively, you can consider using {url_for('analyze_data')} endpoint."
         }, 507
     else:
         return {

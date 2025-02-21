@@ -94,10 +94,17 @@ def get_recommendations(dataset_id: str) -> Response:
     return send_file(pdf_buffer, mimetype='application/pdf', as_attachment=False, download_name='report.pdf')
 
 
-# todo: add endpoint where everything from uploading to getting recommendations is done using one request
+@app.route("/all_stages", methods=["POST"])
+def analyze_data() -> Response:
+    file: FileStorage = request.files['file']
+    params: dict = request.form.to_dict()
+    data: pd.DataFrame = load_data(file, params)
+    data = process_data(data, params)
+    pdf_buffer: BinaryIO = get_data_report(data, params)
+    return send_file(pdf_buffer, mimetype='application/pdf', as_attachment=False, download_name='report.pdf')
 
 
 if __name__ == "__main__":
-    scheduler.add_job(delete_old_files, "interval", hours=1)
+    scheduler.add_job(delete_old_files, "interval", hours=12)
     scheduler.start()
     app.run(debug=True)

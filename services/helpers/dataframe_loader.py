@@ -6,27 +6,27 @@ from werkzeug.datastructures.file_storage import FileStorage
 from errors import ParameterError
 
 
-class DataLoader:
+class DataFrameLoader:
 
     def __init__(self, file: FileStorage, params: dict):
         self.file: FileStorage = file
         self.params: dict = params
 
-    def extract_kwargs(self, keys: list) -> dict:
+    def __extract_kwargs(self, keys: list) -> dict:
         return {key: self.params[key] for key in keys if key in self.params and self.params[key]}
 
-    def load_csv(self) -> pd.DataFrame:
-        kwargs = self.extract_kwargs(["sep", "thousands", "decimal"])
+    def _load_csv(self) -> pd.DataFrame:
+        kwargs = self.__extract_kwargs(["sep", "thousands", "decimal"])
         return pd.read_csv(self.file.stream, **kwargs)
 
-    def load_excel(self) -> pd.DataFrame:
-        kwargs = self.extract_kwargs(["sheet_name", "thousands", "decimal"])
+    def _load_excel(self) -> pd.DataFrame:
+        kwargs = self.__extract_kwargs(["sheet_name", "thousands", "decimal"])
         return pd.read_excel(self.file.stream.read(), **kwargs)
 
-    def load_json(self) -> pd.DataFrame:
+    def _load_json(self) -> pd.DataFrame:
         return pd.read_json(self.file.stream)
 
-    def load_sqlite(self) -> pd.DataFrame:
+    def _load_sqlite(self) -> pd.DataFrame:
         table_name: str = self.params['table_name']
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".db") as temp_file:
@@ -43,3 +43,22 @@ class DataLoader:
         finally:
             cnx.close()
             os.remove(temp_file_path)
+
+    def load_data(self) -> pd.DataFrame:
+        loaders: dict = {
+            'csv': self._load_csv,
+            'xls': self._load_excel,
+            'xlsx': self._load_excel,
+            'json': self._load_json,
+            'db': self._load_sqlite
+        }
+
+        extension: str = self.file.filename.split('.')[-1].lower()
+        if extension not in loaders:
+            raise ValueError(f"Unsupported file format: '{extension}'. Supported formats: {', '.join(loaders.keys())}")
+
+        data: pd.DataFrame = loaders[extension]()
+        if data.empty:
+            raise ValueError("The uploaded file contains no data. Please upload a file with valid data.")
+
+        return data

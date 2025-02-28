@@ -2,6 +2,7 @@ import pandas as pd
 import seaborn as sns
 from typing import BinaryIO
 from services.helpers.dataframe_report import DataFrameReport
+from services.helpers.recommender import Recommender
 
 sns.set_style("darkgrid")
 
@@ -32,6 +33,7 @@ def get_data_report(data: pd.DataFrame, params: dict) -> BinaryIO:
     report.add_dataframe(df=data.describe(exclude=['object', 'category', 'bool']), title="Numerical Data Stats:")
     report.add_dataframe(df=data.describe(include=['object', 'category', 'bool']), title="Non-Numerical Data Stats:")
 
-    # TODO: add recommendations based on analysis task and target column
+    recommender: Recommender = Recommender(data, report)
+    recommender.make_recommendations(params["analysis_task"], params.get("target_col", ""))
 
     return report.to_bytes()

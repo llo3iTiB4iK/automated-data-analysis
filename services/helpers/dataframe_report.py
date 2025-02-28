@@ -12,7 +12,7 @@ class DataFrameReport(FPDF):
 
     def __init__(self):
         super().__init__()
-        self.create_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.create_time: str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.add_page()
 
     def header(self):

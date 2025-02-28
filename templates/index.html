@@ -184,8 +184,8 @@
         <fieldset>
             <div>
                 <label>
-                    <input type="text" name="index_col">
-                    Вкажіть назву стовпця, який містить індекс:
+                    <input type="text" name="index_cols" placeholder='column OR ["column1", "column2"]'>
+                    Вкажіть стовпець або список стовпців, що є індексами (JSON)
                 </label>
             </div>
         </fieldset>
@@ -334,7 +334,6 @@
             <label>
                 <select name="analysis_task">
                     <option value="">--Виберіть значення зі списку доступних--</option>
-                    <option value="association">Асоціація</option>
                     <option value="regression">Регресія</option>
                     <option value="classification">Класифікація</option>
                     <option value="clusterization">Кластеризація</option>

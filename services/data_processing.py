@@ -16,6 +16,7 @@ def process_data(data: pd.DataFrame, raw_params: dict) -> pd.DataFrame:
         index_cols=params.retrieve_columns(data, "index_cols"),
         fill_na_values=params.get_json_value("fill_na_values"),
         allow_type_conversion=params.get_bool_value("allow_type_conversion"),
+        mfill=params.get_bool_value("mfill"),
         ffill=params.get_bool_value("ffill"),
         bfill=params.get_bool_value("bfill"),
         drop_na=params.get_value_among_valid("drop_na", ["rows", "columns"]),
@@ -28,4 +29,5 @@ def process_data(data: pd.DataFrame, raw_params: dict) -> pd.DataFrame:
         joined_category_name=params.get_str_value("joined_category_name"),
         categories_threshold=params.get_positive_number_value("categories_threshold", 1),
         scale_numeric=params.get_bool_value("scale_numeric"),
-        scaling_method=params.get_value_among_valid("scaling_method", list(scalers.keys())))
+        scaling_method=params.get_value_among_valid("scaling_method", list(scalers.keys()))
+    )

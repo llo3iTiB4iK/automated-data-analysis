@@ -83,7 +83,7 @@ class DataFramePreprocessor:
     def preprocess_data(self, case_insensitive_columns: list = None, clear_punct_columns: list = None,
                         clear_digits_columns: list = None, row_range_start: int = None, row_range_end: int = None,
                         row_range_step: int = None, index_cols: list = None, fill_na_values: Any = None,
-                        allow_type_conversion: bool = False, ffill: bool = False, bfill: bool = False,
+                        allow_type_conversion: bool = False, mfill: bool = False, ffill: bool = False, bfill: bool = False,
                         drop_na: str = None, drop_outliers: bool = False, outliers_threshold: float = 3.0,
                         drop_duplicates: str = None, datetime_columns: list = None, category_columns: list = None,
                         join_small_cat: bool = False, joined_category_name: str = "Other", categories_threshold: float = None,
@@ -110,6 +110,13 @@ class DataFramePreprocessor:
         # Handling missing values
         if fill_na_values:
             self._fill_missing_values(fill_na_values, allow_type_conversion)
+        if mfill:
+            fill_na_values = {
+                col: self.data[col].median() if pd.api.types.is_numeric_dtype(self.data[col])
+                else self.data[col].mode().iloc[0]
+                for col in self.data.columns if self.data[col].isna().any()
+            }
+            self._fill_missing_values(fill_na_values)
         if ffill:
             self.data.ffill(inplace=True)
         if bfill:

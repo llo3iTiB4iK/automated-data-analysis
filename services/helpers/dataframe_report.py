@@ -28,23 +28,28 @@ class DataFrameReport(FPDF):
         self.set_font('Arial', 'I', 10)
         self.cell(w=0, text=f'Page {self.page_no()}', align='C')
 
-    def add_text(self, text: str = "", monospaced: bool = False) -> None:
+    def add_text(self, text: str = "", monospaced: bool = False, style: str = "") -> None:
         if monospaced:
-            self.set_font("Courier", size=12)
+            self.set_font("Courier", style, 12)
         else:
-            self.set_font("Times", size=14)
+            self.set_font("Times", style, 14)
 
         self.write(text=text+"\n")
+
+    def add_heading(self, text: str = ""):
+        self.ln(5)
+        self.add_text(text="        " + text, style="B")
+        self.ln(3)
 
     def add_series(self, s: pd.Series, title: str = "") -> None:
         self.add_dataframe(df=pd.DataFrame(s), title=title, col_names=False)
 
     def add_dataframe(self, df: pd.DataFrame, max_cols: int = 4, title: str = "", col_names: bool = True) -> None:
         if title:
-            self.add_text(text='\n\n'+title)
+            self.add_heading(text=title)
         for start in range(0, len(df.columns), max_cols):
             chunk: pd.DataFrame = df.iloc[:, start:start + max_cols]
-            self.add_text(text='\n'+chunk.to_string(header=col_names), monospaced=True)
+            self.add_text(text=chunk.to_string(header=col_names)+"\n", monospaced=True)
         self.add_text()
 
     def add_plot(self) -> None:
@@ -52,6 +57,7 @@ class DataFrameReport(FPDF):
         plt.savefig(img_buf, dpi=200, bbox_inches='tight')
         self.image(img_buf, w=self.epw)
         img_buf.close()
+        plt.close()
 
     def to_bytes(self) -> BytesIO:
         return BytesIO(self.output())

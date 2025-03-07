@@ -2,18 +2,25 @@ import os
 import time
 import uuid
 import pandas as pd
+from datetime import datetime
 
 DATASET_STORAGE: str = "datasets"
 DELETE_AGE_HOURS: int = 24
 
 
 def delete_old_files() -> None:
+    check_time: str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    deleted_files: int = 0
+    print(f"[{check_time}] Starting storage cleanup...")
+
     if not os.path.isdir(DATASET_STORAGE):
         os.mkdir(DATASET_STORAGE)
     for file_path in os.listdir(DATASET_STORAGE):
         full_path: str = os.path.join(DATASET_STORAGE, file_path)
         if os.path.isfile(full_path) and (time.time() - os.path.getctime(full_path) > DELETE_AGE_HOURS * 3600):
             os.remove(full_path)
+            deleted_files += 1
+    print(f"✅ Cleanup complete! {deleted_files} file(s) deleted.\n")
 
 
 def get_from_storage(dataset_id: str) -> pd.DataFrame:

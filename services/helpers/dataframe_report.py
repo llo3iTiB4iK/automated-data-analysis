@@ -52,12 +52,32 @@ class DataFrameReport(FPDF):
             self.add_text(text=chunk.to_string(header=col_names)+"\n", monospaced=True)
         self.add_text()
 
-    def add_plot(self) -> None:
+    def add_plot(self, title: str = None) -> None:
+        if title:
+            plt.title(title)
         img_buf: BytesIO = BytesIO()
         plt.savefig(img_buf, dpi=200, bbox_inches='tight')
         self.image(img_buf, w=self.epw)
         img_buf.close()
         plt.close()
+
+    def _add_subplots_row(self, plot_funcs: list, cols: int = 1, suptitle: str = None) -> None:
+        fig, axes = plt.subplots(1, cols, figsize=(5 * cols, 5))
+        if len(plot_funcs) == 1:
+            axes = [axes]
+        for i, plot_func in enumerate(plot_funcs):
+            plot_func(axes[i])
+        for j in range(len(plot_funcs), cols):
+            axes.flatten()[j].set_visible(False)
+        plt.tight_layout(pad=1.0)
+        if suptitle:
+            fig.suptitle(suptitle, fontsize=16, fontweight='bold', y=1.05)
+        self.add_plot()
+
+    def add_subplots(self, plot_funcs: list, cols: int = 1, suptitle: str = None) -> None:
+        self._add_subplots_row(plot_funcs[:cols], cols=cols, suptitle=suptitle)
+        for i in range(cols, len(plot_funcs), cols):
+            self._add_subplots_row(plot_funcs[i:i + cols], cols=cols)
 
     def to_bytes(self) -> BytesIO:
         return BytesIO(self.output())

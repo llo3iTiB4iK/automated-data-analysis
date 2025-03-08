@@ -6,13 +6,17 @@ from io import BytesIO
 from datetime import datetime
 
 matplotlib.use('Agg')
-#todo: allow any symbols (not only english letters)
+pd.set_option('display.precision', 4)
+
 
 class DataFrameReport(FPDF):
 
     def __init__(self):
         super().__init__()
         self.create_time: str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.add_font("Monospace-Unicode", style="", fname="fonts/MonospaceRegular-6ZWg.ttf")
+        self.add_font("Monospace-Unicode", style="b", fname="fonts/MonospaceBold-zmP0.ttf")
+        self.add_font("Monospace-Unicode", style="i", fname="fonts/MonospaceOblique-5meB.ttf")
         self.add_page()
 
     def header(self):
@@ -30,7 +34,7 @@ class DataFrameReport(FPDF):
 
     def add_text(self, text: str = "", monospaced: bool = False, style: str = "") -> None:
         if monospaced:
-            self.set_font("Courier", style, 12)
+            self.set_font("Monospace-Unicode", style, 14)
         else:
             self.set_font("Times", style, 14)
 
@@ -47,6 +51,12 @@ class DataFrameReport(FPDF):
     def add_dataframe(self, df: pd.DataFrame, max_cols: int = 4, title: str = "", col_names: bool = True) -> None:
         if title:
             self.add_heading(text=title)
+
+        def truncate_column_name(name: str, max_length: int = 14) -> str:
+            return name if len(name) <= max_length else f"{name[:max_length//2-1]}...{name[-(max_length//2-2):]}"
+
+        df = df.rename(columns={col: truncate_column_name(str(col)) for col in df.columns})
+
         for start in range(0, len(df.columns), max_cols):
             chunk: pd.DataFrame = df.iloc[:, start:start + max_cols]
             self.add_text(text=chunk.to_string(header=col_names)+"\n", monospaced=True)

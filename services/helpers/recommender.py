@@ -124,7 +124,7 @@ class Recommender:
 
         self.__feature_engineering_recs()
 
-        self.report.add_text("\n|====<   Regression analysis preparation completed !   >====|", monospaced=True)
+        self.report.add_text("\n|====<   Regression analysis preparation completed !   >====|", monospaced=True, style="B")
 
     def _classification_recommendations(self) -> None:
         self.report.add_heading(f"Classification Recommendations for column '{self.target_col}':")
@@ -163,9 +163,9 @@ class Recommender:
         self.__feature_selection_recs(mi_scores, mi_levels, "mutual information", "classification")
 
         self.__feature_engineering_recs()
-        self.report.add_text("If exist, categorical columns should be encoded since most algorithms or their implementations require numerical data as input!", monospaced=True)
+        self.report.add_text("If exist, categorical columns should be encoded since most algorithms or their implementations require numerical data as input!", monospaced=True, style="B")
 
-        self.report.add_text("\n|====<   Classification preparation completed !   >====|", monospaced=True)
+        self.report.add_text("\n|====<   Classification preparation completed !   >====|", monospaced=True, style="B")
 
     def _clusterization_recommendations(self) -> None:
         if not self.target_col:
@@ -188,16 +188,17 @@ class Recommender:
         self.report.add_heading("Feature Selection Recommendations:")
         pca: PCA = PCA().fit(self.data[numeric_columns])
         importance = (abs(pca.components_) * pca.explained_variance_ratio_.reshape(-1, 1)).sum(axis=0)
-        pca_importance: pd.Series = pd.Series(importance, index=numeric_columns).sort_values(ascending=False)
+        pca_importance: pd.Series = pd.Series(importance, index=numeric_columns, name="Features").sort_values(ascending=False)
         pca_importance = pca_importance[pca_importance > 0.01 * pca_importance.sum()]
         self.report.add_text(f"* {len(pca_importance)} important features found. Consider using them in clustering:")
         sns.barplot(x=pca_importance.values, y=pca_importance.index, hue=pca_importance.index)
+        plt.ylabel("Features")
         self.report.add_plot("Important features weighted PCA score")
 
         self.report.add_text("\n* Looking at the chart below, make important decisions about preprocessing your data:\n"
                              "    1) whether scaling should be performed, as most clustering algorithms are distance-based;\n"
                              "        - actually, scaling can result in a completely different set of important features.\n"
-                             "    2) whether outliers should be handled properly, as they can significantly impact the results;"
+                             "    2) whether outliers should be handled properly, as they can significantly impact the results;\n"
                              "        - this operation can also significantly impact the feature importance.")
 
         sns.boxplot(self.data[pca_importance.index], orient='h')
@@ -207,7 +208,7 @@ class Recommender:
 
         self.__feature_engineering_recs()
 
-        self.report.add_text("\n|====<   Clustering analysis preparation completed !   >====|", monospaced=True)
+        self.report.add_text("\n|====<   Clustering analysis preparation completed !   >====|", monospaced=True, style="B")
 
     def make_recommendations(self, analysis_task: str, target_col: str) -> None:
         self.target_col = target_col

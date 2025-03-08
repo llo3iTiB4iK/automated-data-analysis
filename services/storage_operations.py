@@ -1,15 +1,17 @@
 import os
 import time
 import uuid
+import pytz
 import pandas as pd
 from datetime import datetime
 
 DATASET_STORAGE: str = "datasets"
 DELETE_AGE_HOURS: int = 24
+KYIV: pytz.tzinfo = pytz.timezone('Europe/Kyiv')
 
 
 def delete_old_files() -> None:
-    check_time: str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    check_time: str = datetime.now(KYIV).strftime("%Y-%m-%d %H:%M:%S")
     deleted_files: int = 0
     print(f"[{check_time}] Starting storage cleanup...")
 

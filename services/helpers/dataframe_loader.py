@@ -2,6 +2,7 @@ import pandas as pd
 import sqlite3
 import os
 import tempfile
+from io import BytesIO
 from werkzeug.datastructures.file_storage import FileStorage
 from errors import ParameterError
 
@@ -21,7 +22,7 @@ class DataFrameLoader:
 
     def _load_excel(self) -> pd.DataFrame:
         kwargs = self.__extract_kwargs(["sheet_name", "thousands", "decimal"])
-        return pd.read_excel(self.file.stream.read(), **kwargs)
+        return pd.read_excel(BytesIO(self.file.stream.read()), **kwargs)
 
     def _load_json(self) -> pd.DataFrame:
         return pd.read_json(self.file.stream)

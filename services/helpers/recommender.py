@@ -2,6 +2,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.feature_selection import mutual_info_classif
+from sklearn.decomposition import PCA
 from typing import Any
 from errors import ParameterError
 from services.helpers.dataframe_report import DataFrameReport
@@ -35,22 +36,21 @@ class Recommender:
         for metric_level, (low_value, high_value) in metric_levels.items():
             level_cols: pd.Series = df_metrics[(abs(df_metrics) >= low_value) & (abs(df_metrics) < high_value)]
             if level_cols.empty:
-                self.report.add_text(f"* No {metric_level} informative features found based on {metric_name}.")
+                self.report.add_text(f"* No {metric_level} meaningful features found based on {metric_name}.")
             else:
-                self.report.add_text(f"* {len(level_cols)} {metric_level} informative features were found. Consider using them in {analysis_task}:")
+                self.report.add_text(f"* {len(level_cols)} {metric_level} meaningful features were found. Consider using them in {analysis_task}:")
                 if 3 <= len(level_cols) <= 7:
                     sns.heatmap(pd.DataFrame(level_cols).T, annot=True, cmap="coolwarm", vmin=low_value, vmax=high_value, square=True, cbar=False)
                     self.report.add_plot()
                 else:
                     self.report.add_series(level_cols)
-                cols: int = 3 if analysis_task == "regression" else 2
                 plot_funcs: list = []
                 for feature in level_cols.index:
                     if analysis_task == "regression":
                         plot_funcs.append(lambda ax, f=feature: sns.regplot(self.data, x=self.target_col, y=f, line_kws={"color": "orange"}, ax=ax))
-                    else:
+                    elif analysis_task == "classification":
                         plot_funcs.append(lambda ax, f=feature: sns.boxplot(self.data, x=f, y=self.target_col, hue=self.target_col, ax=ax))
-                self.report.add_subplots(plot_funcs, cols, f"Dependency between target column and {metric_level} informative features")
+                self.report.add_subplots(plot_funcs, suptitle=f"Dependency between target column and {metric_level} meaningful features")
         little_metric: pd.Series = df_metrics[abs(df_metrics) < metric_levels["low"][0]]
         if not little_metric.empty:
             self.report.add_text(f"* All the other columns are considered to have little or even no {metric_name} with target column.\n")
@@ -96,14 +96,11 @@ class Recommender:
         else:
             self.report.add_text(f"* Target column '{self.target_col}' is numeric ({target_series.dtype}).")
 
-        fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-        sns.boxplot(x=target_series, ax=axes[0])
-        sns.histplot(target_series, kde=True, ax=axes[1]).lines[0].set_color('crimson')
-        if target_series.max() / target_series.min() > 100:
-            axes[1].set_yscale('log')
-            axes[1].set_title("Y-axis in log scale due to wide value range")
-        fig.suptitle(f"'{self.target_col}' values distribution", fontsize=16, fontweight='bold')
-        self.report.add_plot()
+        self.report.add_subplots([
+            lambda ax: sns.boxplot(x=target_series, ax=ax),
+            lambda ax: sns.histplot(target_series, kde=True, ax=ax).lines[0].set_color('crimson')
+        ], suptitle=f"'{self.target_col}' values distribution")
+
         Q1, Q3 = target_series.quantile(0.25), target_series.quantile(0.75)
         IQR: float = Q3 - Q1
         outliers: int = ((target_series < Q1 - 1.5 * IQR) | (target_series > Q3 + 1.5 * IQR)).sum()
@@ -117,7 +114,7 @@ class Recommender:
                              f"applying transformations such as log or Box-Cox to make the data more suitable for analysis.\n"
                              f"A transformation can sometimes help stabilize variance and improve the model's performance.")
 
-        correlations: pd.Series = self.data.corr(numeric_only=True)[self.target_col].drop(self.target_col)
+        correlations: pd.Series = self.data.corr(numeric_only=True)[self.target_col]
         corr_levels: dict = {
             "highly": (0.7, 1.0),
             "moderately": (0.5, 0.7),
@@ -173,7 +170,44 @@ class Recommender:
     def _clusterization_recommendations(self) -> None:
         if not self.target_col:
             self.target_col = "Cluster"
-        # TODO: make recommendations
+        self.data[self.target_col] = None
+        self.report.add_heading(f"Clustering Recommendations for '{self.target_col}':")
+
+        if len(self.data) < 100:
+            self.report.add_text(f"* The dataset is quite small ({len(self.data)} rows). Clustering may not be reliable.")
+        else:
+            self.report.add_text(f"* Considering your dataset size ({len(self.data)} rows), expected number of clusters should not be more "
+                                 f"than {int(len(self.data) / 10)}.\n    - Otherwise, clustering algorithms would have low performance.")
+
+        numeric_columns: pd.Index = self.data.select_dtypes('number').columns
+
+        if len(numeric_columns) > 3:
+            self.report.add_text(f"\n* The dataset consists of {len(numeric_columns)} numeric columns:\n    - To facilitate clustering "
+                                 f"and improve visualization, dimensionality reduction techniques like PCA or t-SNE should be applied.")
+
+        self.report.add_heading("Feature Selection Recommendations:")
+        pca: PCA = PCA().fit(self.data[numeric_columns])
+        importance = (abs(pca.components_) * pca.explained_variance_ratio_.reshape(-1, 1)).sum(axis=0)
+        pca_importance: pd.Series = pd.Series(importance, index=numeric_columns).sort_values(ascending=False)
+        pca_importance = pca_importance[pca_importance > 0.01 * pca_importance.sum()]
+        self.report.add_text(f"* {len(pca_importance)} important features found. Consider using them in clustering:")
+        sns.barplot(x=pca_importance.values, y=pca_importance.index, hue=pca_importance.index)
+        self.report.add_plot("Important features weighted PCA score")
+
+        self.report.add_text("\n* Looking at the chart below, make important decisions about preprocessing your data:\n"
+                             "    1) whether scaling should be performed, as most clustering algorithms are distance-based;\n"
+                             "        - actually, scaling can result in a completely different set of important features.\n"
+                             "    2) whether outliers should be handled properly, as they can significantly impact the results;"
+                             "        - this operation can also significantly impact the feature importance.")
+
+        sns.boxplot(self.data[pca_importance.index], orient='h')
+        self.report.add_plot("Important features' distribution")
+        if len(pca_importance) < len(importance):
+            self.report.add_text("* All the other numeric features have very low PCA score, which means they might not be useful for clustering.")
+
+        self.__feature_engineering_recs()
+
+        self.report.add_text("\n|====<   Clustering analysis preparation completed !   >====|", monospaced=True)
 
     def make_recommendations(self, analysis_task: str, target_col: str) -> None:
         self.target_col = target_col

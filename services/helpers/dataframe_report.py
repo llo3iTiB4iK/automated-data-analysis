@@ -6,7 +6,7 @@ from io import BytesIO
 from datetime import datetime
 
 matplotlib.use('Agg')
-
+#todo: allow any symbols (not only english letters)
 
 class DataFrameReport(FPDF):
 
@@ -61,23 +61,25 @@ class DataFrameReport(FPDF):
         img_buf.close()
         plt.close()
 
-    def _add_subplots_row(self, plot_funcs: list, cols: int = 1, suptitle: str = None) -> None:
+    def _add_subplots_row(self, plot_funcs: list, cols: int = 2, suptitle: str = None) -> None:
         fig, axes = plt.subplots(1, cols, figsize=(5 * cols, 5))
-        if len(plot_funcs) == 1:
+        if cols == 1:
             axes = [axes]
         for i, plot_func in enumerate(plot_funcs):
             plot_func(axes[i])
         for j in range(len(plot_funcs), cols):
-            axes.flatten()[j].set_visible(False)
+            axes[j].set_xticks([])
+            axes[j].set_yticks([])
+            axes[j].set_facecolor('white')
         plt.tight_layout(pad=1.0)
         if suptitle:
-            fig.suptitle(suptitle, fontsize=16, fontweight='bold', y=1.05)
+            fig.suptitle(suptitle, fontsize=cols*7, fontweight='bold', y=1.05)
         self.add_plot()
 
-    def add_subplots(self, plot_funcs: list, cols: int = 1, suptitle: str = None) -> None:
-        self._add_subplots_row(plot_funcs[:cols], cols=cols, suptitle=suptitle)
+    def add_subplots(self, plot_funcs: list, cols: int = 2, suptitle: str = None) -> None:
+        self._add_subplots_row(plot_funcs[:cols], cols, suptitle)
         for i in range(cols, len(plot_funcs), cols):
-            self._add_subplots_row(plot_funcs[i:i + cols], cols=cols)
+            self._add_subplots_row(plot_funcs[i:i + cols], cols)
 
     def to_bytes(self) -> BytesIO:
         return BytesIO(self.output())

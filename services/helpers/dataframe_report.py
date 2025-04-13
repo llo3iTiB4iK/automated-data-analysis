@@ -3,7 +3,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from fpdf import FPDF
 from io import BytesIO
-from datetime import datetime
+from datetime import datetime, timezone
 
 matplotlib.use('Agg')
 pd.set_option('display.precision', 4)
@@ -13,7 +13,7 @@ class DataFrameReport(FPDF):
 
     def __init__(self):
         super().__init__()
-        self.create_time: str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.create_time: str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
         self.add_font("Monospace-Unicode", style="", fname="fonts/MonospaceRegular-6ZWg.ttf")
         self.add_font("Monospace-Unicode", style="b", fname="fonts/MonospaceBold-zmP0.ttf")
         self.add_font("Monospace-Unicode", style="i", fname="fonts/MonospaceOblique-5meB.ttf")
@@ -23,7 +23,7 @@ class DataFrameReport(FPDF):
         self.set_font('Arial', 'B', 15)
         self.cell(text="Data Analysis Report", center=True)
         self.set_font('Arial', 'I', 10)
-        self.cell(0, 10, f"Generated on: {self.create_time}", ln=True, align="R")
+        self.cell(0, 10, f"Generated: {self.create_time}", ln=True, align="R")
         self.cell(0, 0, "", "T")
         self.ln(5)
 

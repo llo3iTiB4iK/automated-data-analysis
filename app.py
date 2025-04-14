@@ -1,6 +1,5 @@
 import pandas as pd
 from flask import Flask, request, render_template, send_file, Response, url_for
-from apscheduler.schedulers.background import BackgroundScheduler
 from werkzeug.datastructures import FileStorage
 from typing import BinaryIO
 from io import BytesIO
@@ -8,7 +7,7 @@ import error_handlers as eh
 from services.data_uploading import load_data
 from services.data_processing import process_data
 from services.data_analysis import get_data_report
-from services.storage_operations import delete_old_files, get_from_storage, save_to_storage
+from services.storage_operations import get_from_storage, save_to_storage
 
 app: Flask = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100 MB file size limit
@@ -17,8 +16,6 @@ app.register_error_handler(ValueError, eh.incorrect_parameter)
 app.register_error_handler(405, eh.method_not_allowed)
 app.register_error_handler(413, eh.file_too_large)
 app.register_error_handler(OSError, eh.failed_to_store)
-
-scheduler = BackgroundScheduler()
 
 
 @app.route("/")
@@ -105,6 +102,4 @@ def analyze_data() -> Response:
 
 
 if __name__ == "__main__":
-    scheduler.add_job(delete_old_files, "interval", hours=12)
-    scheduler.start()
     app.run(debug=True)

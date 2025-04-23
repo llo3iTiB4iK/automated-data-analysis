@@ -1,9 +1,10 @@
-import pandas as pd
+from datetime import datetime, timezone
+from io import BytesIO
+
 import matplotlib
 import matplotlib.pyplot as plt
+import pandas as pd
 from fpdf import FPDF
-from io import BytesIO
-from datetime import datetime, timezone
 
 matplotlib.use('Agg')
 pd.set_option('display.precision', 4)
@@ -11,7 +12,7 @@ pd.set_option('display.precision', 4)
 
 class DataFrameReport(FPDF):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.create_time: str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
         self.add_font("Monospace-Unicode", style="", fname="fonts/MonospaceRegular-6ZWg.ttf")
@@ -19,7 +20,7 @@ class DataFrameReport(FPDF):
         self.add_font("Monospace-Unicode", style="i", fname="fonts/MonospaceOblique-5meB.ttf")
         self.add_page()
 
-    def header(self):
+    def header(self) -> None:
         self.set_font('Arial', 'B', 15)
         self.cell(text="Data Analysis Report", center=True)
         self.set_font('Arial', 'I', 10)
@@ -27,7 +28,7 @@ class DataFrameReport(FPDF):
         self.cell(0, 0, "", "T")
         self.ln(5)
 
-    def footer(self):
+    def footer(self) -> None:
         self.set_y(-15)
         self.set_font('Arial', 'I', 10)
         self.cell(w=0, text=f'Page {self.page_no()}', align='C')
@@ -40,7 +41,7 @@ class DataFrameReport(FPDF):
 
         self.write(text=text+"\n")
 
-    def add_heading(self, text: str = ""):
+    def add_heading(self, text: str = "") -> None:
         self.ln(5)
         self.add_text(text="        " + text, style="B")
         self.ln(3)

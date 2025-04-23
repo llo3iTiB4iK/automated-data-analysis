@@ -371,7 +371,7 @@
     </form>
 
     <script>
-        let nextFormAction = "{{ url_for('upload_file') }}";
+        let nextFormAction = "{{ url_for('data_exchange.upload_file') }}";
         const errorDiv = document.getElementById("error_field");
         const dataDiv = document.getElementById("data_field");
 
@@ -386,7 +386,7 @@
             let formData = new FormData(form);
 
             ((form.id === "info_form")
-                ? fetch(`{{ url_for('get_info', dataset_id="") }}${document.querySelector('input[name="dataset_id"]').value}`, {})
+                ? fetch(`{{ url_for('data_exchange.get_info', dataset_id="") }}${document.querySelector('input[name="dataset_id"]').value}`, {})
                 : fetch(nextFormAction, {
                     method: "POST",
                     body: formData
@@ -408,7 +408,7 @@
                         document.getElementById("columns").innerHTML += `<option value="${col}" />`;
                     }
                     nextFormAction = data.next_step;
-                    document.getElementById("download_button").href = `{{ url_for('download_dataset', dataset_id="") }}${data.dataset_id}`;
+                    document.getElementById("download_button").href = `{{ url_for('data_exchange.download_dataset', dataset_id="") }}${data.dataset_id}`;
                     document.getElementById("recommendations_form").action = `{{ url_for('get_recommendations', dataset_id="") }}${data.dataset_id}`;
                 }
             })

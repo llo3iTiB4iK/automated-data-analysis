@@ -1,22 +1,25 @@
+from typing import Any
+
+import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
-from sklearn.feature_selection import mutual_info_classif
 from sklearn.decomposition import PCA
-from typing import Any
-from errors import ParameterError
-from services.helpers.dataframe_report import DataFrameReport
+from sklearn.feature_selection import mutual_info_classif
+
+from .dataframe_report import DataFrameReport
+from .models import AnalysisParams
+from app.errors import ParameterError#
 
 
 class Recommender:
 
-    def __init__(self, data: pd.DataFrame, report: DataFrameReport):
+    def __init__(self, data: pd.DataFrame, report: DataFrameReport) -> None:
         self.data: pd.DataFrame = data
         self.report: DataFrameReport = report
         self.target_col: Any = None
 
     def __validate_target_col(self) -> pd.Series:
-        if not self.target_col or self.target_col not in self.data.columns:
+        if not self.target_col or self.target_col not in self.data.columns:  # todo: maybe refactor with parameter operations
             raise ParameterError("target_col", self.target_col, list(self.data.columns))
 
         target_series: pd.Series = self.data[self.target_col]
@@ -91,7 +94,7 @@ class Recommender:
 
         if not pd.api.types.is_numeric_dtype(target_series) or pd.api.types.is_bool_dtype(target_series):
             self.report.add_text(f"* Target column '{self.target_col}' is not numeric.\n"
-                                 f"* No further analysis can be performed. Consider encoding or converting it.")
+                                 f"* No further reporting can be performed. Consider encoding or converting it.")
             return
         else:
             self.report.add_text(f"* Target column '{self.target_col}' is numeric ({target_series.dtype}).")
@@ -111,7 +114,7 @@ class Recommender:
             self.report.add_text("* No potential outliers were detected in target column, which is perfect for building a "
                                  "stable predictive model and indicates good data quality!\n")
         self.report.add_text(f"* If the distribution of '{self.target_col}' is not normal (look at the chart above), consider "
-                             f"applying transformations such as log or Box-Cox to make the data more suitable for analysis.\n"
+                             f"applying transformations such as log or Box-Cox to make the data more suitable for reporting.\n"
                              f"A transformation can sometimes help stabilize variance and improve the model's performance.")
 
         correlations: pd.Series = self.data.corr(numeric_only=True)[self.target_col]
@@ -124,7 +127,7 @@ class Recommender:
 
         self.__feature_engineering_recs()
 
-        self.report.add_text("\n|====<   Regression analysis preparation completed !   >====|", monospaced=True, style="B")
+        self.report.add_text("\n|====<   Regression reporting preparation completed !   >====|", monospaced=True, style="B")
 
     def _classification_recommendations(self) -> None:
         self.report.add_heading(f"Classification Recommendations for column '{self.target_col}':")
@@ -208,9 +211,9 @@ class Recommender:
 
         self.__feature_engineering_recs()
 
-        self.report.add_text("\n|====<   Clustering analysis preparation completed !   >====|", monospaced=True, style="B")
+        self.report.add_text("\n|====<   Clustering reporting preparation completed !   >====|", monospaced=True, style="B")
 
-    def make_recommendations(self, analysis_task: str, target_col: str) -> None:
+    def make_recommendations(self, params: AnalysisParams) -> None:
         self.target_col = target_col
         recommenders: dict = {
             'regression': self._regression_recommendations,
@@ -218,7 +221,4 @@ class Recommender:
             'clusterization': self._clusterization_recommendations
         }
 
-        if analysis_task not in recommenders:
-            raise ParameterError("analysis_task", analysis_task, list(recommenders.keys()))
-
-        return recommenders[analysis_task]()
+        return recommenders[params.analysis_task]()

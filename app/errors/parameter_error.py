@@ -1,4 +1,5 @@
 from typing import Any
+
 from .base_error import BaseError
 
 

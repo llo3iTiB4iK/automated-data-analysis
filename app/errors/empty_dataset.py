@@ -3,7 +3,7 @@ from .base_error import BaseError
 
 class EmptyDataset(BaseError):
 
-    def __init__(self, context: str):
+    def __init__(self, context: str) -> None:
         self.context = context
 
     def to_dict(self) -> dict[str, str]:

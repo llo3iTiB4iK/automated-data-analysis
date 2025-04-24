@@ -261,7 +261,7 @@
 
             <div>
                 <label>
-                    <input type="radio" name="drop_duplicates" value="" checked>
+                    <input type="radio" name="drop_duplicates" value="no" checked>
                     Не видаляти рядки-дублікати
                 </label>
 
@@ -409,7 +409,7 @@
                     }
                     nextFormAction = data.next_step;
                     document.getElementById("download_button").href = `{{ url_for('data_exchange.download_dataset', dataset_id="") }}${data.dataset_id}`;
-                    document.getElementById("recommendations_form").action = `{{ url_for('get_recommendations', dataset_id="") }}${data.dataset_id}`;
+                    document.getElementById("recommendations_form").action = `{{ url_for('reporting.get_recommendations', dataset_id="") }}${data.dataset_id}`;
                 }
             })
             .catch(error => console.error("Помилка запиту:", error));

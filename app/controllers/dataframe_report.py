@@ -14,7 +14,7 @@ class DataFrameReport(FPDF):
 
     def __init__(self) -> None:
         super().__init__()
-        self.create_time: str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        self.create_time = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
         self.add_font("Monospace-Unicode", style="", fname="fonts/MonospaceRegular-6ZWg.ttf")
         self.add_font("Monospace-Unicode", style="b", fname="fonts/MonospaceBold-zmP0.ttf")
         self.add_font("Monospace-Unicode", style="i", fname="fonts/MonospaceOblique-5meB.ttf")
@@ -59,20 +59,20 @@ class DataFrameReport(FPDF):
         df = df.rename(columns={col: truncate_column_name(str(col)) for col in df.columns})
 
         for start in range(0, len(df.columns), max_cols):
-            chunk: pd.DataFrame = df.iloc[:, start:start + max_cols]
+            chunk = df.iloc[:, start:start + max_cols]
             self.add_text(text=chunk.to_string(header=col_names)+"\n", monospaced=True)
         self.add_text()
 
     def add_plot(self, title: str = None) -> None:
         if title:
             plt.title(title)
-        img_buf: BytesIO = BytesIO()
+        img_buf = BytesIO()
         plt.savefig(img_buf, dpi=200, bbox_inches='tight')
         self.image(img_buf, w=self.epw)
         img_buf.close()
         plt.close()
 
-    def _add_subplots_row(self, plot_funcs: list, cols: int = 2, suptitle: str = None) -> None:
+    def _add_subplots_row(self, plot_funcs: list[callable], cols: int = 2, suptitle: str = None) -> None:
         fig, axes = plt.subplots(1, cols, figsize=(5 * cols, 5))
         if cols == 1:
             axes = [axes]
@@ -87,7 +87,7 @@ class DataFrameReport(FPDF):
             fig.suptitle(suptitle, fontsize=cols*7, fontweight='bold', y=1.05)
         self.add_plot()
 
-    def add_subplots(self, plot_funcs: list, cols: int = 2, suptitle: str = None) -> None:
+    def add_subplots(self, plot_funcs: list[callable], cols: int = 2, suptitle: str = None) -> None:
         self._add_subplots_row(plot_funcs[:cols], cols, suptitle)
         for i in range(cols, len(plot_funcs), cols):
             self._add_subplots_row(plot_funcs[i:i + cols], cols)

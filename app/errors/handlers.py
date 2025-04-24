@@ -1,6 +1,7 @@
 from flask import request, jsonify, Response
 from pydantic import ValidationError
 from werkzeug.exceptions import HTTPException
+
 from .base_error import BaseError
 from .validation_error import PydanticValidationError
 
@@ -8,7 +9,7 @@ from .validation_error import PydanticValidationError
 def handle_custom_error(e: BaseError) -> tuple[Response, int]:
     base = e.to_dict()
     base["service"] = request.blueprint or "main"
-    return jsonify(base), 400
+    return jsonify(base), e.status
 
 
 def handle_validation_error(e: ValidationError) -> tuple[Response, int]:
@@ -22,4 +23,3 @@ def handle_http_exception(e: HTTPException) -> tuple[Response, int]:
         "description": e.description
     }
     return jsonify(response), e.code
-

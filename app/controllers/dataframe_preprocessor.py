@@ -1,42 +1,42 @@
 import string
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MaxAbsScaler, MinMaxScaler, StandardScaler
 
-from app.preprocessing.errors import PreprocessingParameterError, PreprocessingDatasetEmpty
-from .models import PreprocessingParams, ColumnList
+from app.errors import ParameterError, EmptyDataset
+from app.models import PreprocessingParams
+from app.models.preprocessing_params import ColumnList
 
 
-class DataFramePreprocessor:
+class DataFramePreprocessor:  # todo: refactor this class
 
     def __init__(self, data: pd.DataFrame) -> None:
-        self.data: pd.DataFrame = data
+        self.data = data
 
     def _resolve_and_validate_columns(self, columns: ColumnList, param_name: str = "") -> list[str]:
         if columns == "*":
             return self.data.columns.tolist()
 
         if any(col not in self.data.columns for col in columns):
-            raise PreprocessingParameterError(param_name, str(columns),
-                                              [f"'*' or subset from existing columns ({self.data.columns})"])
+            raise ParameterError(param_name, str(columns), f"'*' or subset from existing columns ({self.data.columns})")
         return columns
 
     def _validate_dataset_not_empty(self, operation: str) -> None:
         if self.data.empty:
-            raise PreprocessingDatasetEmpty(f"The dataset is empty after: {operation.upper()}."
-                                            f"Please review your preprocessing parameters.")
+            raise EmptyDataset(f"The dataset is empty after: {operation.upper()}. "
+                               f"Please review your preprocessing parameters.")
 
     def _apply_str_column_operations(self, columns: ColumnList, transform_fn: callable, apply_to_column: bool = False,
                                      param_name: str = "") -> None:
-        columns: list = self._resolve_and_validate_columns(columns, param_name)
+        columns = self._resolve_and_validate_columns(columns, param_name)
         for col in columns:
             try:
                 self.data[col] = transform_fn(self.data[col]) if apply_to_column else self.data[col].apply(transform_fn)
             except (ValueError, AttributeError):
-                raise PreprocessingParameterError(param_name, col, [
-                    "A column or list of columns that contain data appropriate for transformation"])
+                raise ParameterError(param_name, col,
+                                     "A column or list of columns that contain data appropriate for transformation")
 
     def _fill_missing_values(self, fill_values: Any) -> None:
         self.data.fillna(fill_values, inplace=True)#
@@ -53,16 +53,16 @@ class DataFramePreprocessor:
         }
         self._fill_missing_values(fill_values)
 
-    def _select_rows(self, start: int = None, stop: int = None, step: int = None):
+    def _select_rows(self, start: int = None, stop: int = None, step: int = None) -> None:
         if start:
             start -= 1
         self.data = self.data.iloc[start:stop:step]
         self._validate_dataset_not_empty("row selection")
 
     def _find_and_drop_outliers(self, threshold: float) -> None:
-        numeric_data: pd.DataFrame = self.data.select_dtypes(include='number')
-        z: np.ndarray = np.abs((numeric_data - numeric_data.mean()) / numeric_data.std())
-        outliers: pd.DataFrame = self.data[(z > threshold).any(axis=1)]
+        numeric_data = self.data.select_dtypes(include='number')
+        z = np.abs((numeric_data - numeric_data.mean()) / numeric_data.std())
+        outliers = self.data[(z > threshold).any(axis=1)]
         self.data.drop(outliers.index, inplace=True)
 
     def _combine_rare_categories(self, category_name: str, category_threshold: float) -> None:
@@ -111,7 +111,7 @@ class DataFramePreprocessor:
 
         # A preprocessing pipeline defined as (condition, operation) pairs.
         # Each operation is executed only if its condition is truthy, with the condition passed as an argument.
-        pipeline = [
+        pipeline: list[tuple[bool, Callable[..., None]]] = [
             (params.case_insensitive_columns, lowercase_columns),
             (params.clear_punct_columns, depunct_columns),
             (params.clear_digits_columns, dedigit_columns),

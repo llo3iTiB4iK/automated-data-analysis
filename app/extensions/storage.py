@@ -63,6 +63,3 @@ class Storage:
                                f"'{url_for('main.analyze_data')}' endpoint for all-in-one request.", status=500)
 
         return dataset_id, access_key
-
-
-storage = Storage()

@@ -1,7 +1,6 @@
-! TO BE UPDATED...
 # Automated Data Analysis and Reporting Web Service
 
-This project is a **web service** for automated data preprocessing and report generation. It helps users clean, transform, and understand their datasets by offering intuitive recommendations based on the task type (regression, classification, clustering).
+This project is a **web service** for automated data preprocessing and report generation. It helps users clean, transform, and understand datasets by offering intuitive recommendations based on the task type (regression, classification, clustering).
 
 ## 🌐 Features
 
@@ -14,57 +13,105 @@ This project is a **web service** for automated data preprocessing and report ge
 ## 📁 Project Structure
 
 ```
-├── app.py                    # Main Flask application
-├── error_handlers.py         # Custom error handlers
-├── errors.py                 # Error messages and exceptions
-├── requirements.txt          # Python package dependencies
-├── fonts/                    # Fonts used in generated reports
-├── sample_data/              # Example input datasets
-├── services/
-│   ├── data_uploading.py     # Handles dataset upload and reading
-│   ├── data_processing.py    # Core preprocessing logic
-│   ├── data_analysis.py      # Generates PDF recommendations
-│   ├── storage_operations.py # Dataset storage/retrieval & cleanup
-│   ├── helpers/              # Helper classes to be used in services
-├── templates/
-│   └── index.html            # Frontend upload interface
+automated-data-analysis/
+├── app/                      
+│   ├── controllers/         # Request handlers and route logic
+│   ├── data_exchange/       # Data upload/download blueprint
+│   ├── errors/              # Custom error classes and handlers
+│   ├── extensions/          # Custom extensions
+│   ├── main/                # Main blueprint
+│   ├── models/              # Pydantic form data models
+│   ├── preprocessing/       # Data preprocessing blueprint
+│   ├── reporting/           # Report generation blueprint
+│   ├── templates/           # HTML templates
+│   │   └── index.html       # Application main page
+│   └── __init__.py          # Application factory
+├── datasets/                # Temporary dataset storage (created on runtime)
+├── fonts/                   # Fonts for PDF reports
+├── sample_data/             # Example datasets
+├── config.py                # Application configuration
+├── main.py                  # Application entry point
+├── README.md
+└── requirements.txt         # Dependencies
 ```
 
-## ⚙️ Setup (local)
+## ⚙️Local Setup Instructions
 
-1. **Install dependencies:**
+### 1. Clone the Project Repository
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+First, clone the project from GitHub:
 
-2. **Run the app:**
+```bash
+git clone https://github.com/llo3iTiB4iK/automated-data-analysis.git
+cd automated-data-analysis
+```
 
-   ```bash
-   python app_factory.py
-   ```
+### 2. Create and Activate a Virtual Environment
 
-3. The service will be available at [http://localhost:5000](http://localhost:5000)
+Create a virtual environment to isolate your dependencies:
+
+```bash
+python -m venv venv
+```
+
+Activate the virtual environment:
+
+- On **Windows**:
+  ```bash
+  venv\Scripts\activate
+  ```
+
+- On **Linux/macOS**:
+  ```bash
+  source venv/bin/activate
+  ```
+
+### 3. Install Dependencies
+
+With the virtual environment active, install the required dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Run the Application
+
+After installing the dependencies, you can start the application:
+
+```bash
+python main.py
+```
+
+This will start the Flask development server. By default, the app will be available at [http://localhost:5000](http://localhost:5000)
+
+---
+
+✅ **Local Setup Complete!**  
+The application is now running locally and ready to process datasets!
 
 ## 🚀 API Endpoints
 
-| Method | Endpoint                         | Description                                  |
-|--------|----------------------------------|----------------------------------------------|
-| GET    | `/`                              | Home page with upload form                   |
-| POST   | `/upload`                        | Upload a dataset                             |
-| POST   | `/preprocess/<dataset_id>`       | Preprocess a dataset with given parameters   |
-| GET    | `/dataset_info/<dataset_id>`     | Get basic dataset info                       |
-| GET    | `/download/<dataset_id>`         | Download preprocessed dataset                |
-| GET    | `/recommendations/<dataset_id>`  | Get PDF report with recommendations          |
-| POST   | `/all_stages`                    | Upload, preprocess, and generate report in one call |
+| Method | Endpoint                         | Description                                 |
+|--------|----------------------------------|---------------------------------------------|
+| `GET`  | `/`                              | Application home page                       |
+| `POST` | `/upload`                        | Upload a dataset                            |
+| `POST` | `/preprocess/<dataset_id>`       | Preprocess dataset with parameters          |
+| `GET`  | `/dataset_info/<dataset_id>`     | Get dataset metadata                        |
+| `GET`  | `/download/<dataset_id>`         | Download preprocessed dataset               |
+| `GET`  | `/recommendations/<dataset_id>`  | Generate PDF report                         |
+| `POST` | `/all_stages`                    | Full pipeline: upload → preprocess → report |
 
-## 📌 Notes
+## 📌 Key Notes
 
-- The server automatically deletes old datasets every 12 hours.
-- Data is kept in memory or temporary storage (no database).
-- Reports are generated as in-memory PDF files (not saved on disk).
+- **Automatic cleanup:** Old datasets are deleted every 12 hours.
+- **Stateless design:** No database used; data stored in memory/temp files.
+- **Security:** Uploaded files are isolated in temporary storage.
+- **Privacy:** Dataset access requires `X-Dataset-Token` header (provided once on upload).
+- **Error handling:** JSON-formatted informative error messages returned.
+- **REST API:** JSON requests/responses for all endpoints except file upload/download and recommendation report.
+- **Scalability:** Modular architecture allows easy component replacement.
 
-## 🌐 Deployment Steps (PythonAnywhere)
+## 🌐 Deployment Guide (PythonAnywhere)
 
 Follow these steps to deploy the service on [PythonAnywhere](https://www.pythonanywhere.com/):
 
@@ -83,8 +130,9 @@ Go to [pythonanywhere.com](https://www.pythonanywhere.com/) and **sign up** or *
   - **Python 3.10** as the interpreter
 - When asked for the path to your app, set it to:
   ```bash
-  /home/your_username/your_project_folder/app_factory.py
+  /home/your_username/your_project_folder/main.py
   ```
+- Proceed to app creation
 
 ---
 
@@ -112,15 +160,17 @@ workon your_venv_name
 
 1. Go to the `Files` tab on [PythonAnywhere](https://www.pythonanywhere.com/).
 
-2. If a default `app.py` file was created during web app setup, **delete it**:
-   - Navigate to `/home/your_username/your_project_folder/app.py`
+2. If a default `main.py` file was created during web app setup, **delete it**:
+   - Navigate to `/home/your_username/your_project_folder/main.py`
    - Click the 🗑️ icon or open the file and use the **Delete file** option
 
 3. **Upload your project files** to the project directory:
    - Either drag and drop a `.zip` archive and unzip it in place
    - **OR** upload the files individually via the interface
 
-4. **Make sure there's enough free disk space**:
+4. Set `ENV` variable to `"prod"` in `config.py` file.
+
+5. **Make sure there's enough free disk space (~450 MB)**:
    - In a Bash console, run:
      ```bash
      df -h
@@ -156,7 +206,7 @@ Due to limited disk space, installation may fail the first time. Follow these st
 
 3. **Repeat steps 1–2** until no errors occur.
 
-You’re done when you do **not** see:
+You’re done when you do **NOT** see:
 ```bash
 ERROR: Could not install packages due to an OSError: [Errno 122] Disk quota exceeded
 ```
@@ -170,15 +220,14 @@ ERROR: Could not install packages due to an OSError: [Errno 122] Disk quota exce
   ```
   /home/your_username/your_project_folder
   ```
-- Repeat the previous action for **"Working directory"**
-- Hit **Reload** at the top of the page
+- Repeat the action for **"Working directory"**
 - In the **"Virtualenv"** section, enter:
   ```
   /home/your_username/.virtualenvs/your_venv_name
   ```
+- Hit **Reload** at the top of the page
 
 ---
-
 
 ### 9. Create a scheduled task for automatic cleanup
 
@@ -191,17 +240,19 @@ To automatically delete old datasets from the server storage, create a **schedul
 3. In the **Command** field, enter:
 
    ```bash
-   python3 /home/your_username/your_project_folder/cleaner.py
+   cd /home/your_username/your_project_folder && source /home/your_username/.virtualenvs/your_venv_name/bin/activate && flask cleanup
    ```
 
-4. Set the frequency (**"daily"** only available for free-tier accounts), depending on your needs
+4. Set the frequency depending on your needs
 
 5. Click **"Create"**
 
-> 🔁 **For free-tier accounts**:  
+> 🔁 **For free-tier accounts**:
+> - You cannot choose the frequency of your scheduler task - it is run daily
 > - You’ll need to **manually extend the expiry date** of your scheduled task each time it gets close to expiring.  
 > - Also go to the **"Web"** tab and set the web app to **"Run until 3 months from now"** to avoid early suspension.
 
 ---
 
-✅ Your service should now be up and running!
+✅ **Deployment Complete!**  
+Your service should now be up and running!

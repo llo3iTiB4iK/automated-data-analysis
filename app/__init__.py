@@ -18,6 +18,10 @@ def create_app(config_class: object = Config) -> Flask:
 
     storage.init_app(app)
 
+    @app.cli.command("cleanup")
+    def cleanup_command():
+        storage.cleanup()
+
     app.register_blueprint(main_bp)
     app.register_blueprint(data_exchange_bp)
     app.register_blueprint(preprocessing_bp)
@@ -27,16 +31,18 @@ def create_app(config_class: object = Config) -> Flask:
     app.register_error_handler(ValidationError, handle_validation_error)
     app.register_error_handler(HTTPException, handle_http_exception)
 
-
     if app.config["ENV"] == "dev":
-        try:
-            from apscheduler.schedulers.background import BackgroundScheduler
-        except ImportError:
-            raise RuntimeError("Environment is set to 'dev', but 'apscheduler' is missing. "
-                               "This may happen if production dependencies were installed instead of development ones.")
+        import os
 
-        scheduler = BackgroundScheduler()
-        scheduler.add_job(storage.cleanup, "interval", hours=app.config["STORAGE_CLEANUP_INTERVAL_HOURS"])
-        scheduler.start()
+        if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+            import threading
+            import time
+
+            def interval_cleanup():
+                while True:
+                    storage.cleanup()
+                    time.sleep(app.config["STORAGE_CLEANUP_INTERVAL_HOURS"] * 3600)
+
+            threading.Thread(target=interval_cleanup, daemon=True).start()
 
     return app

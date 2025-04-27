@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 
 import pandas as pd
-from flask import Flask, url_for
+from flask import Flask, current_app, url_for, request
 
 from app.errors import StorageError
 
@@ -12,15 +12,25 @@ from app.errors import StorageError
 class Storage:
 
     def __init__(self, app: Flask = None) -> None:
-        self.storage_location = None
-        self.dataset_max_age = None
-
         if app is not None:
             self.init_app(app)
 
     def init_app(self, app: Flask) -> None:
-        self.storage_location = app.config["DATASET_STORAGE"]
-        self.dataset_max_age = app.config["DELETE_AGE_HOURS"]
+        if not hasattr(app, 'extensions'):
+            app.extensions = {}
+        app.extensions['storage'] = self
+
+    @property
+    def storage_location(self) -> str:
+        return current_app.config["DATASET_STORAGE"]
+
+    @property
+    def dataset_max_age(self) -> int:
+        return current_app.config["DELETE_AGE_HOURS"]
+
+    @property
+    def access_key_header(self) -> str:
+        return current_app.config["ACCESS_KEY_HEADER"]
 
     def cleanup(self) -> None:
         check_time = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
@@ -38,9 +48,14 @@ class Storage:
 
         print(f"✅ Cleanup complete! {deleted_files} file(s) deleted.\n")
 
-    def get_dataset(self, dataset_id: str, access_key: str) -> pd.DataFrame:
+    def get_dataset(self, dataset_id: str) -> pd.DataFrame:
+        access_key = request.headers.get(self.access_key_header)
+        if not access_key:
+            raise StorageError("Missing access key in headers.", status=400)
+
         expected_filename = f"{dataset_id}__{access_key}"
         full_path = os.path.join(self.storage_location, expected_filename)
+
         if not os.path.exists(full_path):
             raise StorageError("Dataset not found or invalid access key.", status=403)
 

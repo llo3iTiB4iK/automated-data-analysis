@@ -4,7 +4,7 @@ from werkzeug.exceptions import HTTPException
 
 from app.data_exchange import bp as data_exchange_bp
 from app.errors import BaseError
-from app.errors.handlers import handle_custom_error, handle_validation_error, handle_http_exception
+from app.errors.handlers import handle_custom_error, handle_validation_error, handle_http_exception, handle_unexpected_error
 from app.extensions import storage
 from app.main import bp as main_bp
 from app.preprocessing import bp as preprocessing_bp
@@ -30,19 +30,6 @@ def create_app(config_class: object = Config) -> Flask:
     app.register_error_handler(BaseError, handle_custom_error)
     app.register_error_handler(ValidationError, handle_validation_error)
     app.register_error_handler(HTTPException, handle_http_exception)
-
-    if app.config["ENV"] == "dev":
-        import os
-
-        if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-            import threading
-            import time
-
-            def interval_cleanup():
-                while True:
-                    storage.cleanup()
-                    time.sleep(app.config["STORAGE_CLEANUP_INTERVAL_HOURS"] * 3600)
-
-            threading.Thread(target=interval_cleanup, daemon=True).start()
+    app.register_error_handler(Exception, handle_unexpected_error)
 
     return app

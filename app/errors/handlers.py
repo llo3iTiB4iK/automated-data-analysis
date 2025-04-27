@@ -1,6 +1,6 @@
 from flask import request, jsonify, Response
 from pydantic import ValidationError
-from werkzeug.exceptions import HTTPException
+from werkzeug.exceptions import HTTPException, InternalServerError
 
 from .base_error import BaseError
 from .validation_error import PydanticValidationError
@@ -23,3 +23,7 @@ def handle_http_exception(e: HTTPException) -> tuple[Response, int]:
         "description": e.description
     }
     return jsonify(response), e.code
+
+
+def handle_unexpected_error(_: Exception) -> tuple[Response, int]:
+    return handle_http_exception(InternalServerError())

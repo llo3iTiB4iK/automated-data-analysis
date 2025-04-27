@@ -35,7 +35,7 @@ def upload_file() -> Response:
 
 @bp.route("/dataset_info/<dataset_id>")
 def get_info(dataset_id: str) -> Response:
-    data = storage.get_dataset(dataset_id, access_key=request.headers.get("X-Dataset-Token", ""))
+    data = storage.get_dataset(dataset_id)
 
     response = {
         "message": "Dataset found successfully",
@@ -53,7 +53,7 @@ def get_info(dataset_id: str) -> Response:
 
 @bp.route("/download/<dataset_id>")
 def download_dataset(dataset_id: str) -> Response:
-    data = storage.get_dataset(dataset_id, access_key=request.headers.get("X-Dataset-Token", ""))
+    data = storage.get_dataset(dataset_id)
     dataset_buffer = BytesIO()
     data.to_csv(dataset_buffer, index=False)
     dataset_buffer.seek(0)

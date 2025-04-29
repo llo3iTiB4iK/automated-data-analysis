@@ -61,9 +61,9 @@ class Storage:
 
         return pd.read_pickle(full_path)
 
-    def save_dataset(self, data: pd.DataFrame, dataset_id: str = "", access_key: str = "") -> tuple[str, str]:
+    def save_dataset(self, data: pd.DataFrame, dataset_id: str = "") -> tuple[str, str]:
         dataset_id = dataset_id or str(uuid.uuid4())
-        access_key = access_key or str(uuid.uuid4())
+        access_key = request.headers.get(self.access_key_header, str(uuid.uuid4()))
 
         if not os.path.isdir(self.storage_location):
             os.mkdir(self.storage_location)

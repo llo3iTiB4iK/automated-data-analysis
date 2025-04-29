@@ -1,12 +1,7 @@
-from flask import render_template, request, send_file, Response
+from flask import request, send_file, Response
 
 from app.controllers import load_data, process_data, get_data_report
 from app.main import bp
-
-
-@bp.route("/")
-def home() -> str:
-    return render_template("index.html")
 
 
 @bp.route("/all_stages", methods=["POST"])

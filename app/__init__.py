@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_cors import CORS
 from pydantic import ValidationError
 from werkzeug.exceptions import HTTPException
 
@@ -16,6 +17,7 @@ def create_app(config_class: object = Config) -> Flask:
     app: Flask = Flask(__name__)
     app.config.from_object(config_class)
 
+    CORS(app)
     storage.init_app(app)
 
     @app.cli.command("cleanup")

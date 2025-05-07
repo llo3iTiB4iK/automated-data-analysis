@@ -39,11 +39,10 @@ class DataFramePreprocessor:  # todo: refactor this class
                                      "A column or list of columns that contain data appropriate for transformation")
 
     def _fill_missing_values(self, fill_values: Any) -> None:
-        self.data.fillna(fill_values, inplace=True)#
-        # try:
-        #     self.data.fillna(fill_values, inplace=True)
-        # except ValueError:
-        #     raise PreprocessingParameterError("fill_na_values", str(fill_values), ["JSON object", "string", "number", "boolean"])
+        try:
+            self.data.fillna(fill_values, inplace=True)
+        except ValueError:
+            raise ParameterError("fill_na_values", str(fill_values), "Valid constant value or dictionary")
 
     def _fill_missing_with_stat(self) -> None:
         fill_values = {

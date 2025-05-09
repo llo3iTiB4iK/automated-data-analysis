@@ -16,8 +16,7 @@ def interval_cleanup():
 
 
 if __name__ == "__main__":
-    if app.config["ENV"] == "dev":
-        if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-            threading.Thread(target=interval_cleanup, daemon=True).start()
+    if app.config["ENV"] == "dev" and os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        threading.Thread(target=interval_cleanup, daemon=True).start()
 
     app.run()

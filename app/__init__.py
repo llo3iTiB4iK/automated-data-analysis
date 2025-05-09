@@ -17,7 +17,11 @@ def create_app(config_class: object = Config) -> Flask:
     app: Flask = Flask(__name__)
     app.config.from_object(config_class)
 
-    CORS(app)
+    CORS(app, resources={r"/*": {
+        "origins": "*",
+        "allow_headers": ["Content-Type", "X-Dataset-Token"],
+        "methods": ["GET", "POST"]
+    }})
     storage.init_app(app)
 
     @app.cli.command("cleanup")
@@ -35,3 +39,6 @@ def create_app(config_class: object = Config) -> Flask:
     app.register_error_handler(Exception, handle_unexpected_error)
 
     return app
+
+
+__all__ = ['create_app']

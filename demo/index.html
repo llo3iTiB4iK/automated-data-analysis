@@ -44,7 +44,7 @@
         </header>
 
         <!-- Global error alert -->
-        <div id="error-alert" class="alert alert-danger alert-dismissible fade show d-none" role="alert">
+        <div id="error-alert" class="alert alert-danger alert-dismissible fade show d-none">
             <div id="error-message">Error message will appear here</div>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
@@ -67,27 +67,27 @@
 
         <div class="row">
             <div class="col-12">
-                <ul class="nav nav-tabs" id="myTab" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab" aria-controls="upload" aria-selected="true">Upload</button>
+                <ul class="nav nav-tabs" id="myTab">
+                    <li class="nav-item">
+                        <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" aria-controls="upload" aria-selected="true">Upload</button>
                     </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab" aria-controls="info" aria-selected="false">Info</button>
+                    <li class="nav-item">
+                        <button class="nav-link" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" aria-controls="info" aria-selected="false">Info</button>
                     </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="preprocess-tab" data-bs-toggle="tab" data-bs-target="#preprocess" type="button" role="tab" aria-controls="preprocess" aria-selected="false">Preprocess</button>
+                    <li class="nav-item">
+                        <button class="nav-link" id="preprocess-tab" data-bs-toggle="tab" data-bs-target="#preprocess" type="button" aria-controls="preprocess" aria-selected="false">Preprocess</button>
                     </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report" type="button" role="tab" aria-controls="report" aria-selected="false">Report</button>
+                    <li class="nav-item">
+                        <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report" type="button" aria-controls="report" aria-selected="false">Report</button>
                     </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="download-tab" data-bs-toggle="tab" data-bs-target="#download" type="button" role="tab" aria-controls="download" aria-selected="false">Download</button>
+                    <li class="nav-item">
+                        <button class="nav-link" id="download-tab" data-bs-toggle="tab" data-bs-target="#download" type="button" aria-controls="download" aria-selected="false">Download</button>
                     </li>
                 </ul>
 
                 <div class="tab-content" id="myTabContent">
                     <!-- Upload Tab -->
-                    <div class="tab-pane fade show active py-4" id="upload" role="tabpanel" aria-labelledby="upload-tab">
+                    <div class="tab-pane fade show active py-4" id="upload">
                         <div class="card">
                             <div class="card-body">
                                 <form id="upload-form">
@@ -153,7 +153,7 @@
                     </div>
 
                     <!-- Info Tab -->
-                    <div class="tab-pane fade py-4" id="info" role="tabpanel" aria-labelledby="info-tab">
+                    <div class="tab-pane fade py-4" id="info">
                         <div class="card">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -175,7 +175,7 @@
                     </div>
 
                     <!-- Preprocess Tab -->
-                    <div class="tab-pane fade py-4" id="preprocess" role="tabpanel" aria-labelledby="preprocess-tab">
+                    <div class="tab-pane fade py-4" id="preprocess">
                         <div class="card">
                             <div class="card-body">
                                 <h5 class="card-title">Preprocess Dataset</h5>
@@ -438,7 +438,7 @@
                     </div>
 
                     <!-- Report Tab -->
-                    <div class="tab-pane fade py-4" id="report" role="tabpanel" aria-labelledby="report-tab">
+                    <div class="tab-pane fade py-4" id="report">
                         <div class="card">
                             <div class="card-body">
                                 <h5 class="card-title">Generate Report</h5>
@@ -492,7 +492,7 @@
                     </div>
 
                     <!-- Download Tab -->
-                    <div class="tab-pane fade py-4" id="download" role="tabpanel" aria-labelledby="download-tab">
+                    <div class="tab-pane fade py-4" id="download">
                         <div class="card">
                             <div class="card-body">
                                 <h5 class="card-title">Download Dataset</h5>
@@ -522,7 +522,7 @@
     </div>
 
     <div id="loading" class="spinner-overlay d-none">
-        <div class="spinner-border text-primary" role="status">
+        <div class="spinner-border text-primary">
             <span class="visually-hidden">Loading...</span>
         </div>
     </div>
@@ -614,7 +614,6 @@
 
             // Helper functions
             function setLoading(loading) {
-                isLoading = loading;
                 if (loading) {
                     loadingIndicator.classList.remove('d-none');
                 } else {
@@ -702,9 +701,7 @@
 
                 // Process all other form elements
                 const elements = form.elements;
-                for (let i = 0; i < elements.length; i++) {
-                    const element = elements[i];
-
+                for (let element of elements) {
                     // Skip file inputs (already handled), buttons, and elements without a name
                     if (element.type === 'file' || element.type === 'button' ||
                         element.type === 'submit' || !element.name) {
@@ -738,22 +735,6 @@
                 }
 
                 return formData;
-            }
-
-            // Helper function to clean object by removing empty strings
-            function cleanObject(obj) {
-                const result = {};
-
-                for (const key in obj) {
-                    // Skip empty strings, null, and undefined values
-                    if (obj[key] === '' || obj[key] === null || obj[key] === undefined) {
-                        continue;
-                    }
-
-                    result[key] = obj[key];
-                }
-
-                return result;
             }
 
             // Error handling functions
@@ -848,29 +829,6 @@
                 }
 
                 return headers;
-            }
-
-            // Function to handle file downloads
-            async function handleFileDownload(response, filename) {
-                // Get the blob from the response
-                const blob = await response.blob();
-
-                // Create a URL for the blob
-                const url = window.URL.createObjectURL(blob);
-
-                // Create a temporary link and trigger download
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = filename || 'download';
-                document.body.appendChild(a);
-                a.click();
-
-                // Clean up
-                setTimeout(() => {
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                }, 100);
             }
 
             // Function to switch between datasets
@@ -1010,9 +968,7 @@
                 const uploadForm = document.getElementById('upload-form');
                 const elements = uploadForm.elements;
 
-                for (let i = 0; i < elements.length; i++) {
-                    const element = elements[i];
-
+                for (let element of elements) {
                     // Skip file inputs (already handled), buttons, and elements without a name
                     if (element.type === 'file' || element.type === 'button' ||
                         element.type === 'submit' || !element.name) {

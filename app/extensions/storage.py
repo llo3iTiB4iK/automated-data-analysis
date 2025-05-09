@@ -37,8 +37,7 @@ class Storage:
         deleted_files = 0
         print(f"[{check_time}] Starting storage cleanup...")
 
-        if not os.path.isdir(self.storage_location):
-            os.mkdir(self.storage_location)
+        os.makedirs(self.storage_location, exist_ok=True)
 
         for file_path in os.listdir(self.storage_location):
             full_path = os.path.join(self.storage_location, file_path)
@@ -65,8 +64,7 @@ class Storage:
         dataset_id = dataset_id or str(uuid.uuid4())
         access_key = request.headers.get(self.access_key_header, str(uuid.uuid4()))
 
-        if not os.path.isdir(self.storage_location):
-            os.mkdir(self.storage_location)
+        os.makedirs(self.storage_location, exist_ok=True)
 
         filename = f"{dataset_id}__{access_key}"
         full_path = os.path.join(self.storage_location, filename)

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Optional, Callable
 
 import matplotlib.pyplot as plt
@@ -13,245 +14,260 @@ from .dataframe_report import DataFrameReport
 sns.set_style("darkgrid")
 
 
-class DataFrameAnalyzer:  # todo: refactor this class
+class DataFrameAnalyzer:
 
-    def __init__(self, data: pd.DataFrame, report: DataFrameReport) -> None:
-        self.data = data
-        self.report = report
+    @dataclass
+    class FeatureSelectionParams:
+        metrics: pd.Series
+        levels: dict[str, tuple[float, float]]
+        name: str
+        task: str
+        plot_func: Callable[..., plt.Axes]
+        plot_feature_wise: bool = True
 
-    def _add_overall_summary(self) -> None:
-        self.report.add_heading(text="Overall dataset summary:")
-        summary_text = f"* Data has {len(self.data)} rows and {len(self.data.columns)} columns:\n" \
-                       f"    - {len(self.data.select_dtypes(include='number').columns)} numerical columns\n" \
-                       f"    - {len(self.data.select_dtypes(include='category').columns)} categorical columns\n" \
-                       f"    - {len(self.data.select_dtypes(include='bool').columns)} boolean columns\n" \
-                       f"    - {len(self.data.select_dtypes(include='datetime').columns)} datetime columns\n" \
-                       f"    - {len(self.data.select_dtypes(include='object').columns)} string columns.\n" \
-                       f"* Duplicate rows were{'' if self.data.duplicated().any() else ' not'} found.\n" \
-                       f"* Missing values share = {round(self.data.isna().values.sum() / self.data.size * 100, 2)}% ."
-        self.report.add_text(text=summary_text)
+    def __init__(self, data: pd.DataFrame, report: DataFrameReport = None) -> None:
+        self._data = data
+        self._report = report or DataFrameReport()
 
-        self.report.add_series(s=self.data.dtypes, title="Column Types:")
-
-        if self.data.isna().values.any():
-            counts_df = pd.DataFrame({
-                'Missing values': self.data.isna().sum(),
-                'Non-missing values': self.data.notna().sum()
-            })
-            counts_df.plot(kind='barh', stacked=True, title="Missing values by column")
-            self.report.add_plot()
-
-        self.report.add_dataframe(df=self.data.describe(exclude=['object', 'category', 'bool']),
-                                  title="Numerical Data Stats:")
-        self.report.add_dataframe(df=self.data.describe(include=['object', 'category', 'bool']),
-                                  title="Non-Numerical Data Stats:")
-
-    def _get_target_col(self, col: str) -> pd.Series:
-        if col is None:
-            raise ParameterMissing("target_col")
-        elif col not in self.data.columns:
-            raise ParameterError("target_col", col, list(self.data.columns))
-
-        target_series = self.data[col]
-        missing_count = target_series.isna().sum()
-        if missing_count > 0:
-            na_percentage = round(missing_count / len(target_series) * 100, 2)
-            self.report.add_text(
-                f"* Target column contains {missing_count} missing values ({na_percentage} % of all). You can consider one of :\n"
-                f"    - common methods, such as dropping rows containing NaN values if their share is very small or filling them with median/mean/mode value.\n"
-                f"    - special methods (Forward Fill, Backward Fill, filling NaN with exact value or based on other columns etc) if required.")
+    def __validate_target(self, col: Optional[str]) -> pd.Series:
+        if not col:
+            raise ParameterMissing('target_col')
+        if col not in self._data:
+            raise ParameterError('target_col', col, list(self._data.columns))
+        series = self._data[col]
+        missing = series.isna().sum()
+        if missing:
+            pct = round(missing / len(series) * 100, 2)
+            self._report.add_text(
+                f"* Target column '{col}' has {missing} missing values ({pct}% of all):\n"
+                f"    if missing values share is not too significant - "
+                f"consider removal or using median/mode/mean value for imputation\n"
+                f"    else - consider special methods of imputation "
+                f"(Forward Fill, Backward Fill, using exact value or based on other columns)"
+            )
         else:
-            self.report.add_text("* No missing values in target column were found - good sign!")
-        return target_series
+            self._report.add_text(f"* Target column '{col}' has no missing values.")
+        return series
 
-    def _recommend_feature_selection(self, df_metrics: pd.Series, metric_levels: dict[str, tuple[float, float]],
-                                     metric_name: str, analysis_task: str, target_col: str) -> None:
-        self.report.add_heading("Feature Selection Recommendations:")
-        for metric_level, (low_value, high_value) in metric_levels.items():
-            level_cols: pd.Series = df_metrics[(abs(df_metrics) >= low_value) & (abs(df_metrics) < high_value)]
-            if level_cols.empty:
-                self.report.add_text(f"* No {metric_level} meaningful features found based on {metric_name}.")
+    def __select_features(self, params: FeatureSelectionParams, target: str) -> None:
+        self._report.add_heading("Feature Selection Recommendations:")
+        for label, (low, high) in params.levels.items():
+            group = params.metrics[(params.metrics.abs() >= low) & (params.metrics.abs() < high)]
+            if group.empty:
+                self._report.add_text(f"* No {label} meaningful features found based on {params.name}.")
+                continue
+            self._report.add_text(f"* {len(group)} {label} meaningful features were found. Consider using them in {params.task}:")
+            # Visual summary
+            if 3 <= len(group) <= 7:
+                sns.heatmap(pd.DataFrame(group).T, annot=True, square=True, cbar=False, vmin=low, vmax=high, cmap='coolwarm')
+                self._report.add_plot(title=params.name.title())
             else:
-                self.report.add_text(f"* {len(level_cols)} {metric_level} meaningful features were found. Consider using them in {analysis_task}:")
-                if 3 <= len(level_cols) <= 7:
-                    sns.heatmap(pd.DataFrame(level_cols).T, annot=True, cmap="coolwarm", vmin=low_value, vmax=high_value, square=True, cbar=False)
-                    self.report.add_plot()
-                else:
-                    self.report.add_series(level_cols)
-                plot_funcs = []
-                for feature in level_cols.index:
-                    if analysis_task == "regression":
-                        plot_funcs.append(lambda ax, f=feature: sns.regplot(self.data, x=target_col, y=f, line_kws={"color": "orange"}, ax=ax))
-                    elif analysis_task == "classification":
-                        plot_funcs.append(lambda ax, f=feature: sns.boxplot(self.data, x=f, y=target_col, hue=target_col, ax=ax))
-                self.report.add_subplots(plot_funcs, suptitle=f"Dependency between target column and {metric_level} meaningful features")
-        little_metric: pd.Series = df_metrics[abs(df_metrics) < metric_levels["low"][0]]
-        if not little_metric.empty:
-            self.report.add_text(f"* All the other columns are considered to have little or even no {metric_name} with target column.\n")
+                self._report.add_series(group)
+            # Pairwise plots
+            if params.plot_feature_wise:
+                plotters = [lambda ax, f=feat: params.plot_func(ax, f) for feat in group.index]
+                self._report.add_subplots(plotters, suptitle=f"Dependency between '{target}' and {label} meaningful features")
+            else:
+                params.plot_func(group.index)
+                self._report.add_plot(title=f"{label.title()} meaningful features chart")
+        # Note on rest
+        rest = params.metrics[params.metrics.abs() < min(l[0] for l in params.levels.values())]
+        if not rest.empty:
+            self._report.add_text("* Remaining features have low relevance.")
 
-    def _recommend_feature_engineering(self, target_col: str) -> None:
-        self.report.add_heading("Feature Engineering Recommendations:")
-        column_types = self.data.drop(columns=[target_col]).dtypes
-        column_conditions: dict[str, tuple[Optional[Callable[..., bool]], str]] = {
-            "bool": (None, "    - Boolean features detected.\n"
-                           "* Consider encoding them as 0/1 if needed:"),
-            "int": (lambda int_cols: int_cols[(self.data[int_cols].nunique() <= 20) | (self.data[int_cols].nunique() < len(self.data) * 0.1)],
-                    "    - These Integer features detected to have a few unique values.\n"
-                    "* Consider treating them as categorical (binning):"),
-            "float": (lambda float_cols: float_cols[abs(self.data[float_cols].skew()) > 1],
-                      "    - These Float features have high skewness (|skewness| > 1).\n"
-                      "* Consider transformations (log, sqrt, or Box-Cox):"),
-            "datetime64[ns]": (None, "    - Datetime features detected.\n"
-                                     "* Consider extracting useful components like year, month, day, or weekday etc:"),
-            "category": (None, "    - Category type features detected.\n"
-                               "* Consider encoding methods like One-Hot, Target Encoding, Frequency Encoding, etc."
-                               "* If feature has an ordinal relationship, consider using Ordinal Encoding.\n"
-                               "* If feature contains rare categories, consider grouping them into an 'Other' category to avoid sparsity.\n"
-                               "* If column has missing values, consider filling them with 'Unknown' or mode value:"),
-            "object": (None, "    - String type features detected.\n"
-                             "* Consider converting them to categorical variables, applying text transformations or removing if not useful:")
-        }
-        for col_type, (condition, message) in column_conditions.items():
-            relevant_columns = column_types[column_types == col_type].index
-            if condition is not None:
-                relevant_columns = condition(relevant_columns)
-            if not relevant_columns.empty:
-                self.report.add_text(message)
-                self.report.add_series(relevant_columns)
-
-    def _regression_recommendations(self, target_col: str) -> None:
-        self.report.add_heading(f"Regression Analysis Recommendations for column '{target_col}':")
-        target_series = self._get_target_col(target_col)
-
-        if not pd.api.types.is_numeric_dtype(target_series) or pd.api.types.is_bool_dtype(target_series):
-            self.report.add_text(f"* Target column '{target_col}' is not numeric.\n"
+    def __regression_recs(self, target: str) -> None:
+        y = self.__validate_target(target)
+        if not pd.api.types.is_numeric_dtype(y):
+            self._report.add_text(f"* Target column '{target}' is not numeric.\n"
                                  f"* No further reporting can be performed. Consider encoding or converting it.")
             return
         else:
-            self.report.add_text(f"* Target column '{target_col}' is numeric ({target_series.dtype}).")
+            self._report.add_text(f"* Target column '{target}' is numeric ({y.dtype}).")
 
-        self.report.add_subplots([
-            lambda ax: sns.boxplot(x=target_series, ax=ax),
-            lambda ax: sns.histplot(target_series, kde=True, ax=ax).lines[0].set_color('crimson')
-        ], suptitle=f"'{target_col}' values distribution")
-
-        Q1, Q3 = target_series.quantile(0.25), target_series.quantile(0.75)
-        IQR = Q3 - Q1
-        outliers = ((target_series < Q1 - 1.5 * IQR) | (target_series > Q3 + 1.5 * IQR)).sum()
-        if outliers > 0:
-            self.report.add_text(f"* {outliers} potential outliers detected in '{target_col}'.\n"
+        self._report.add_subplots([
+            lambda ax: sns.boxplot(x=y, ax=ax),
+            lambda ax: sns.histplot(y, kde=True, ax=ax).lines[0].set_color('crimson')
+        ], suptitle=f"'{target}' values distribution")
+        # Outliers
+        q1, q3 = y.quantile([0.25, 0.75])
+        iqr = q3 - q1
+        out = ((y < q1 - 1.5 * iqr) | (y > q3 + 1.5 * iqr)).sum()
+        if out:
+            self._report.add_text(f"* {out} potential outliers detected in '{target}'.\n"
                                  f"* Consider handling them or leave these values as-is if they are important.\n")
         else:
-            self.report.add_text("* No potential outliers were detected in target column, which is perfect for building a "
+            self._report.add_text("* No potential outliers were detected in target column, which is perfect for building a "
                                  "stable predictive model and indicates good data quality!\n")
-        self.report.add_text(f"* If the distribution of '{target_col}' is not normal (look at the chart above), consider "
+        self._report.add_text(f"* If the distribution of '{target}' is not normal (look at the chart above), consider "
                              f"applying transformations such as log or Box-Cox to make the data more suitable for reporting.\n"
                              f"A transformation can sometimes help stabilize variance and improve the model's performance.")
+        # Correlation
 
-        correlations = self.data.corr(numeric_only=True)[target_col]
-        corr_levels: dict[str, tuple[float, float]] = {
-            "highly": (0.7, 1.0),
-            "moderately": (0.5, 0.7),
-            "low": (0.3, 0.5)
-        }
-        self._recommend_feature_selection(correlations, corr_levels, "correlation", "regression", target_col)
+        def plot_corr(ax: plt.Axes, feature: str) -> plt.Axes:
+            sns.regplot(self._data, x=target, y=feature, line_kws={"color": "orange"}, ax=ax)
 
-        self._recommend_feature_engineering(target_col)
+        selection_params = self.FeatureSelectionParams(
+            metrics=self._data.corr(numeric_only=True)[target],
+            levels={'highly': (0.7, 1.0), 'moderately': (0.5, 0.7), 'low': (0.3, 0.5)},
+            name='correlation',
+            task='regression',
+            plot_func=plot_corr
+        )
+        self.__select_features(selection_params, target)
 
-        self.report.add_text("\n|====<   Regression reporting preparation completed !   >====|", monospaced=True, style="B")
-
-    def _classification_recommendations(self, target_col: str) -> None:
-        self.report.add_heading(f"Classification Recommendations for column '{target_col}':")
-        target_series = self._get_target_col(target_col)
-
-        plot = sns.countplot(x=target_series, hue=target_series)
-        if target_series.nunique() > 5:
-            plot.set_xticklabels(plot.get_xticklabels(), rotation=90)
-        self.report.add_plot("Distribution of classes across target column")
-        class_counts = target_series.value_counts(normalize=True)
-        min_class, max_class = class_counts.min(), class_counts.max()
+    def __classification_recs(self, target: str) -> None:
+        y = self.__validate_target(target)
+        sns.countplot(x=y, hue=y)
+        self._report.add_plot(f"'{target}' class distribution")
+        # Class balance
+        counts = y.value_counts(normalize=True)
+        min_class, max_class = counts.min(), counts.max()
         if max_class / min_class > 3:
-            self.report.add_text(
+            self._report.add_text(
                 f"* Target column is imbalanced:\n"
                 f"    - the most frequent class appears {round(max_class / min_class, 2)}x more often than the least frequent.\n"
                 f"    - consider using techniques like oversampling (SMOTE), undersampling, or class weighting in your model.")
         else:
-            self.report.add_text("* Target column has a balanced distribution of classes.")
-
-        rare_categories = class_counts[class_counts / len(self.data) < 0.01]
+            self._report.add_text("* Target column has a balanced distribution of classes.")
+        # Rare categories
+        rare_categories = counts[counts / len(self._data) < 0.01]
         if not rare_categories.empty:
-            self.report.add_text("* Some target classes are very rare (<1% of total data):")
-            self.report.add_series(rare_categories)
-            self.report.add_text("* Consider:\n"
-            "    - grouping rare classes into an 'Other' category (if appropriate)\n"
-            "    - collecting more data\n"
-            "    - using stratified sampling during training.")
+            self._report.add_text("* Some target classes are very rare (<1% of total data):")
+            self._report.add_series(rare_categories)
+            self._report.add_text("* Consider:\n"
+                                 "    - grouping rare classes into an 'Other' category (if appropriate)\n"
+                                 "    - collecting more data\n"
+                                 "    - using stratified sampling during training.")
+        # Mutual info
 
-        numeric_cols = self.data.select_dtypes("number").columns
-        mi_scores = pd.Series(mutual_info_classif(X=self.data[numeric_cols], y=target_series, random_state=42), index=numeric_cols, name=target_col)
-        mi_levels: dict[str, tuple[float, float]] = {
-            "highly": (0.1, 1.0),
-            "moderately": (0.05, 0.1),
-            "low": (0.01, 0.05)
-        }
-        self._recommend_feature_selection(mi_scores, mi_levels, "mutual information", "classification", target_col)
+        def plot_mi(ax: plt.Axes, feature: str) -> plt.Axes:
+            sns.boxplot(self._data, x=feature, y=target, hue=target, ax=ax)
 
-        self._recommend_feature_engineering(target_col)
-        self.report.add_text("If exist, categorical columns should be encoded since most algorithms or their implementations require numerical data as input!", monospaced=True, style="B")
+        nums = self._data.select_dtypes('number')
+        selection_params = self.FeatureSelectionParams(
+            metrics=pd.Series(mutual_info_classif(nums, y, random_state=42), index=nums.columns, name=target),
+            levels={'highly': (0.1, 1.0), 'moderately': (0.05, 0.1), 'low': (0.01, 0.05)},
+            name='mutual information',
+            task='classification',
+            plot_func=plot_mi
+        )
+        self.__select_features(selection_params, target)
 
-        self.report.add_text("\n|====<   Classification preparation completed !   >====|", monospaced=True, style="B")
-
-    def _clusterization_recommendations(self, target_col: Optional[str]) -> None:
-        target_col = target_col or "Cluster"
-
-        self.data[target_col] = None
-        self.report.add_heading(f"Clustering Recommendations for '{target_col}':")
-
-        if len(self.data) < 100:
-            self.report.add_text(f"* The dataset is quite small ({len(self.data)} rows). Clustering may not be reliable.")
+    def __clustering_recs(self, target: Optional[str]) -> None:
+        label = target or 'Cluster'
+        self._data[label] = None
+        n = len(self._data)
+        if n < 100:
+            self._report.add_text(f"* Small data ({n} rows): clustering may be unreliable.")
         else:
-            self.report.add_text(f"* Considering your dataset size ({len(self.data)} rows), expected number of clusters should not be more "
-                                 f"than {int(len(self.data) / 10)}.\n    - Otherwise, clustering algorithms would have low performance.")
+            self._report.add_text(
+                f"* Considering your dataset size ({len(self._data)} rows), expected number of clusters should not be"
+                f" more than {n // 10}.\n    - Otherwise, clustering algorithms would have low performance.")
+        nums = self._data.select_dtypes('number')
+        if nums.shape[1] > 3:
+            self._report.add_text(
+                f"\n* The dataset consists of {nums.shape[1]} numeric columns:\n    - To facilitate clustering "
+                f"and improve visualization, dimensionality reduction techniques like PCA or t-SNE should be applied."
+            )
+        # Weighted PCA score
+        pca = PCA(random_state=42)
+        pca.fit_transform(nums)
+        weighted_pca = abs(pca.components_).T.dot(pca.explained_variance_ratio_)
+        imp = pd.Series(weighted_pca, index=nums.columns, name=target).sort_values(ascending=False)
+        selection_params = self.FeatureSelectionParams(
+            metrics=imp,
+            levels={'highly': (0.01 * imp.sum(), imp.sum())},
+            name='weighted PCA score',
+            task='clustering',
+            plot_func=lambda features: sns.boxplot(self._data[features], orient='h'),
+            plot_feature_wise=False
+        )
+        self.__select_features(selection_params, target)
+        self._report.add_text(
+            "\n* Looking at the feature distribution chart, consider preprocessing decisions:\n"
+            "    1) whether scaling should be applied, as most clustering algorithms are distance-based;\n"
+            "        - actually, scaling can result in a completely different set of important features.\n"
+            "    2) whether outliers should be handled properly, as they can significantly impact the results;\n"
+            "        - this operation can also significantly impact the feature importance.")
 
-        numeric_columns = self.data.select_dtypes('number').columns
+    def __feature_engineering(self, target: str) -> None:
+        self._report.add_heading("Feature Engineering Recommendations:")
+        dtypes = self._data.drop(columns=[target]).dtypes
 
-        if len(numeric_columns) > 3:
-            self.report.add_text(f"\n* The dataset consists of {len(numeric_columns)} numeric columns:\n    - To facilitate clustering "
-                                 f"and improve visualization, dimensionality reduction techniques like PCA or t-SNE should be applied.")
-
-        self.report.add_heading("Feature Selection Recommendations:")
-        pca = PCA()
-        pca.fit(self.data[numeric_columns])
-        importance = (abs(pca.components_) * pca.explained_variance_ratio_.reshape(-1, 1)).sum(axis=0)
-        pca_importance = pd.Series(importance, index=numeric_columns, name="Features").sort_values(ascending=False)
-        pca_importance = pca_importance[pca_importance > 0.01 * pca_importance.sum()]
-        self.report.add_text(f"* {len(pca_importance)} important features found. Consider using them in clustering:")
-        sns.barplot(x=pca_importance.values, y=pca_importance.index, hue=pca_importance.index)
-        plt.ylabel("Features")
-        self.report.add_plot("Important features weighted PCA score")
-
-        self.report.add_text("\n* Looking at the chart below, make important decisions about preprocessing your data:\n"
-                             "    1) whether scaling should be performed, as most clustering algorithms are distance-based;\n"
-                             "        - actually, scaling can result in a completely different set of important features.\n"
-                             "    2) whether outliers should be handled properly, as they can significantly impact the results;\n"
-                             "        - this operation can also significantly impact the feature importance.")
-
-        sns.boxplot(self.data[pca_importance.index], orient='h')
-        self.report.add_plot("Important features' distribution")
-        if len(pca_importance) < len(importance):
-            self.report.add_text("* All the other numeric features have very low PCA score, which means they might not be useful for clustering.")
-
-        self._recommend_feature_engineering(target_col)
-
-        self.report.add_text("\n|====<   Clustering reporting preparation completed !   >====|", monospaced=True, style="B")
-
-    def generate_report(self, params: AnalysisParams) -> None:
-        self._add_overall_summary()
-
-        recommenders: dict[str, Callable[..., None]] = {
-            'regression': self._regression_recommendations,
-            'classification': self._classification_recommendations,
-            'clusterization': self._clusterization_recommendations
+        strategies = {
+            'bool': "Encode boolean features as 0/1 if needed:",
+            'int': "Bin or treat small-cardinality integer features (having few unique values) as categorical:",
+            'float': "Transform highly skewed (|skewness| > 1) float features (log, sqrt, Box-Cox):",
+            'datetime64[ns]': "Extract useful date parts (year, month, day, weekday etc) from datetime features:",
+            'category': "Encode category features using One-Hot, Target, Frequency or Ordinal Encoding methods."
+                        "Group rare categories to avoid sparsity:",
+            'object': "Convert string features to categorical ones, apply text transformations ot drop:"
         }
+        for dt, msg in strategies.items():
+            cols = dtypes[dtypes == dt].index.tolist()
+            if not cols:
+                continue
+            if dt == 'int':
+                cols = [c for c in cols if (self._data[c].nunique() <= 20)]
+            if dt == 'float':
+                cols = [c for c in cols if abs(self._data[c].skew()) > 1]
+            if cols:
+                self._report.add_text(f"* {msg}")
+                self._report.add_series(cols)
 
-        return recommenders[params.analysis_task](params.target_col)
+    def _basic_stats(self) -> None:
+        df = self._data
+        self._report.add_heading("Overall dataset summary:")
+
+        # Basic counts
+        missing_cells = df.isna().sum().sum()
+        counts = {
+            'rows': len(df),
+            'columns': len(df.columns),
+            'numeric': df.select_dtypes('number').shape[1],
+            'categorical': df.select_dtypes('category').shape[1],
+            'boolean': df.select_dtypes('bool').shape[1],
+            'datetime': df.select_dtypes('datetime').shape[1],
+            'string': df.select_dtypes('object').shape[1],
+            'duplicates': int(df.duplicated().any()),
+            'missing_pct': round(missing_cells / df.size * 100, 2),
+        }
+        summary = f"* Dataset contains {counts['rows']} rows, {counts['columns']} columns\n" \
+                  f"({counts['numeric']} numeric, {counts['categorical']} categorical, {counts['boolean']} boolean, " \
+                  f"{counts['datetime']} datetime, {counts['string']} string).\n" \
+                  f"* Duplicated rows {'found' if counts['duplicates'] else 'not found'}.\n" \
+                  f"* Missing values: {counts['missing_pct']}% ."
+        self._report.add_text(summary)
+
+        # Data types series
+        self._report.add_series(self._data.dtypes, title="Column Types:")
+
+        # Missing value plot
+        if missing_cells > 0:
+            missing_df = pd.DataFrame({
+                'Missing': df.isna().sum(),
+                'Non-missing': df.notna().sum()
+            })
+            missing_df.plot(kind='barh', stacked=True, title="Missing values by column")
+            self._report.add_plot()
+
+        # Descriptive statistics
+        self._report.add_dataframe(df.describe(), title="Numeric Stats:")
+        self._report.add_dataframe(df.describe(include=['object', 'category', 'bool']), title="Non-numeric Stats:")
+
+    def _task_based_recs(self, analysis_task: str, target_column: Optional[str]) -> None:
+        self._report.add_heading(f"{analysis_task.title()} Recommendations for '{target_column}'")
+        task_map: dict[str, Callable[..., None]] = {
+            'regression': self.__regression_recs,
+            'classification': self.__classification_recs,
+            'clusterization': self.__clustering_recs
+        }
+        task_map[analysis_task](target_column)
+        self.__feature_engineering(target_column)
+        self._report.add_text(f"\n|====<   {analysis_task.title()} preparation completed !   >====|", monospaced=True, style="B")
+
+    def fill_report(self, params: AnalysisParams, report: DataFrameReport = None) -> DataFrameReport:
+        self._report = report or self._report
+        self._basic_stats()
+        self._task_based_recs(params.analysis_task, params.target_col)
+        return self._report

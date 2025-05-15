@@ -56,7 +56,7 @@ class Storage:
         full_path = os.path.join(self.storage_location, expected_filename)
 
         if not os.path.exists(full_path):
-            raise StorageError("Dataset not found or invalid access key.", status=403)
+            raise StorageError("Dataset not found or invalid access key.", status=404)
 
         return pd.read_pickle(full_path)
 

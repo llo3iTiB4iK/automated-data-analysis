@@ -130,7 +130,7 @@ class DataFrameAnalyzer:
         else:
             self._report.add_text("* Target column has a balanced distribution of classes.")
         # Rare categories
-        rare_categories = counts[counts / len(self._data) < 0.01]
+        rare_categories = counts[counts < 0.01]
         if not rare_categories.empty:
             self._report.add_text("* Some target classes are very rare (<1% of total data):")
             self._report.add_series(rare_categories)

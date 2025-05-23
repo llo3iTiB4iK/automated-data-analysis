@@ -5,8 +5,7 @@ from datetime import datetime, timezone
 
 import pandas as pd
 from flask import Flask, current_app, url_for, request
-
-from app.errors import StorageError
+from werkzeug.exceptions import BadRequest, NotFound, InternalServerError
 
 
 class Storage:
@@ -50,13 +49,13 @@ class Storage:
     def get_dataset(self, dataset_id: str) -> pd.DataFrame:
         access_key = request.headers.get(self.access_key_header)
         if not access_key:
-            raise StorageError("Missing access key in headers.", status=400)
+            raise BadRequest("Missing access key in headers.")
 
         expected_filename = f"{dataset_id}__{access_key}"
         full_path = os.path.join(self.storage_location, expected_filename)
 
         if not os.path.exists(full_path):
-            raise StorageError("Dataset not found or invalid access key.", status=404)
+            raise NotFound("Dataset not found or invalid access key.")
 
         return pd.read_pickle(full_path)
 
@@ -72,7 +71,7 @@ class Storage:
         try:
             data.to_pickle(full_path)
         except OSError:
-            raise StorageError(f"Failed to save your dataset. Try again later or consider using "
-                               f"'{url_for('main.analyze_data')}' endpoint for all-in-one request.", status=500)
+            raise InternalServerError(f"Failed to save your dataset. Try again later or consider using "
+                                      f"'{url_for('main.analyze_data')}' endpoint for all-in-one request.")
 
         return dataset_id, access_key

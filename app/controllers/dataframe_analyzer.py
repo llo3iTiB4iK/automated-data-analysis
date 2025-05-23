@@ -8,7 +8,8 @@ from sklearn.decomposition import PCA
 from sklearn.feature_selection import mutual_info_classif
 
 from app.errors import ParameterError, ParameterMissing
-from app.models import AnalysisParams
+from app.models import AnalysisParams, MetadataResponse
+from app.models.request.analysis_params import AnalysisTask
 from .dataframe_report import DataFrameReport
 
 sns.set_style("darkgrid")
@@ -16,7 +17,7 @@ sns.set_style("darkgrid")
 
 class DataFrameAnalyzer:
 
-    @dataclass
+    @dataclass(frozen=True)
     class FeatureSelectionParams:
         metrics: pd.Series
         levels: dict[str, tuple[float, float]]
@@ -153,9 +154,8 @@ class DataFrameAnalyzer:
         )
         self.__select_features(selection_params, target)
 
-    def __clustering_recs(self, target: Optional[str]) -> None:
-        label = target or 'Cluster'
-        self._data[label] = None
+    def __clustering_recs(self, target: str) -> None:
+        self._data[target] = None
         n = len(self._data)
         if n < 100:
             self._report.add_text(f"* Small data ({n} rows): clustering may be unreliable.")
@@ -256,13 +256,14 @@ class DataFrameAnalyzer:
         self._report.add_dataframe(df.describe(include=['object', 'category', 'bool']), title="Non-numeric Stats:")
 
     def _task_based_recs(self, analysis_task: str, target_column: Optional[str]) -> None:
-        self._report.add_heading(f"{analysis_task.title()} Recommendations for '{target_column}'")
-        task_map: dict[str, Callable[..., None]] = {
-            'regression': self.__regression_recs,
-            'classification': self.__classification_recs,
-            'clusterization': self.__clustering_recs
+        TASK_RECOMMENDERS: dict[str, Callable[..., None]] = {
+            AnalysisTask.REGRESSION: self.__regression_recs,
+            AnalysisTask.CLASSIFICATION: self.__classification_recs,
+            AnalysisTask.CLUSTERIZATION: self.__clustering_recs
         }
-        task_map[analysis_task](target_column)
+
+        self._report.add_heading(f"{analysis_task.title()} Recommendations for '{target_column}'")
+        TASK_RECOMMENDERS[analysis_task](target_column)
         self.__feature_engineering(target_column)
         self._report.add_text(f"\n|====<   {analysis_task.title()} preparation completed !   >====|", monospaced=True, style="B")
 
@@ -271,3 +272,11 @@ class DataFrameAnalyzer:
         self._basic_stats()
         self._task_based_recs(params.analysis_task, params.target_col)
         return self._report
+
+    @staticmethod
+    def get_metadata(data: pd.DataFrame) -> MetadataResponse:
+        return MetadataResponse(
+            num_rows=len(data),
+            num_columns=len(data.columns),
+            columns=data.dtypes.astype(str).to_dict()
+        )

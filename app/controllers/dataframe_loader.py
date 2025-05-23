@@ -54,7 +54,7 @@ class DataFrameLoader:
             os.remove(temp_file_path)
 
     def load_data(self) -> pd.DataFrame:
-        loaders = {
+        LOADERS = {
             'csv': self._load_csv,
             'xls': self._load_excel,
             'xlsx': self._load_excel,
@@ -64,13 +64,13 @@ class DataFrameLoader:
 
         extension = self.file.filename.split('.')[-1].lower()
 
-        if extension not in loaders:
-            raise ParameterError("file", extension, list(loaders.keys()))
+        if extension not in LOADERS:
+            raise ParameterError("file", extension, list(LOADERS.keys()))
 
         try:
-            data = loaders[extension]()
-        except ValueError as e:
-            raise ReadingError(e.args[0], self.file.filename)
+            data = LOADERS[extension]()
+        except Exception:
+            raise ReadingError(self.file.filename)
 
         if data.empty:
             raise EmptyDataset(f"The uploaded file '{self.file.filename}' contains no data")

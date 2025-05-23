@@ -3,18 +3,12 @@ from typing import Any, Callable, List
 
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import MaxAbsScaler, MinMaxScaler, StandardScaler
 
 from app.errors import ParameterError, EmptyDataset
-from app.models.preprocessing_params import ColumnList, PreprocessingParams
+from app.models.request.preprocessing_params import ColumnList, PreprocessingParams
 
 
-class DataFramePreprocessor:
-    SCALERS = {
-        "max_abs_scaling": MaxAbsScaler,
-        "min_max_scaling": MinMaxScaler,
-        "z_score": StandardScaler,
-    }
+class DataFramePreprocessor:#
 
     def __init__(self, data: pd.DataFrame) -> None:
         self.data = data
@@ -170,5 +164,4 @@ class DataFramePreprocessor:
         cols = self.data.select_dtypes(include='number').columns
         if not cols.any():
             return
-        scaler = self.SCALERS[params.scaling_method]()
-        self.data[cols] = scaler.fit_transform(self.data[cols])
+        self.data[cols] = params.scaler.fit_transform(self.data[cols])

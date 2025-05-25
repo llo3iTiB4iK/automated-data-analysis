@@ -4,11 +4,8 @@ from pydantic import BaseModel, Field
 
 
 class LoadingParams(BaseModel):
-    sep: Optional[str] = None
+    separator: Optional[str] = ","
     thousands: Optional[str] = Field(None, min_length=1, max_length=1)
-    decimal: Optional[str] = Field(None, min_length=1, max_length=1)
-    sheet_name: Optional[str] = None
+    decimal: Optional[str] = Field(".", min_length=1, max_length=1)
+    sheet_name: Optional[str | int] = 0
     table_name: Optional[str] = None
-
-    def get_kwargs(self, *args) -> dict:
-        return self.dict(include=set(args), exclude_none=True)

@@ -30,10 +30,35 @@ class ParameterMissing(BadRequest):
 class ReadingError(UnprocessableEntity):
     name = "Reading Error"
 
-    def __init__(self, filename: str) -> None:
+    def __init__(self, filename: str, message: str = "") -> None:
         description = {
             "message": "An error occurred while reading provided data file",
-            "file": filename
+            "file": filename,
+            "details": message
+        }
+        super().__init__(description=description)
+
+
+class TransformationError(UnprocessableEntity):
+    name = "Transformation Error"
+
+    def __init__(self, operation: str, column: str) -> None:
+        description = {
+            "message": "Failed to apply transformation to column",
+            "transformation": operation,
+            "column": column
+        }
+        super().__init__(description=description)
+
+
+class ColumnNotFound(UnprocessableEntity):
+    name = "Column Not Found"
+
+    def __init__(self, missing: list[str], available: list[str]) -> None:
+        description = {
+            "message": "Requested columns are not present in the dataset",
+            "missing_columns": missing,
+            "available_columns": available
         }
         super().__init__(description=description)
 

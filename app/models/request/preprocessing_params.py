@@ -32,13 +32,13 @@ class PreprocessingParams(BaseModel):
     drop_outliers: bool = False
     outliers_threshold: PositiveFloat = 3.0
     drop_duplicates: bool = False
-    duplicate_subset: Optional[ColumnList] = None
+    duplicate_subset: ColumnList = Field(default_factory=list)
     duplicate_keep: Literal['first', 'last', False] = "first"
     datetime_columns: ColumnList = Field(default_factory=list)
     category_columns: ColumnList = Field(default_factory=list)
     join_small_cat: bool = False
     joined_category_name: str = "Other"
-    categories_threshold: Optional[PositiveFloat] = None
+    categories_threshold: Optional[PositiveFloat] = Field(None, lt=1)
     scale_numeric: bool = False
     scaling_method: constr(to_lower=True) = "z_score"
 

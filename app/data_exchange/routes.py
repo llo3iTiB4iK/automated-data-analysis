@@ -1,7 +1,7 @@
 from io import BytesIO
 
 from flask import request, url_for, send_file, jsonify
-from flask_pydantic_spec import Response
+from flask_pydantic_spec import Response, FileResponse, MultipartFormRequest
 
 from app.data_exchange import bp
 from app.errors import ParameterMissing
@@ -12,7 +12,7 @@ from app.models import LoadingParams, UploadResponse, DatasetTokenHeader, InfoRe
 
 @bp.route("/datasets", methods=["POST"])
 @spec.validate(
-    body=LoadingParams,
+    body=MultipartFormRequest(model=LoadingParams),
     resp=Response(HTTP_200=UploadResponse),
     tags=["Upload dataset"]
 )
@@ -60,10 +60,10 @@ def get_info(dataset_id: str) -> Response:
 @spec.validate(
     query=ExportParams,
     headers=DatasetTokenHeader,
-    resp=Response('HTTP_200'),
+    resp=FileResponse(),
     tags=["Download dataset"]
 )
-def download_dataset(dataset_id: str) -> Response:
+def download_dataset(dataset_id: str) -> FileResponse:
     params: ExportParams = request.context.query  # noqa
     data = storage.get_dataset(dataset_id)
 

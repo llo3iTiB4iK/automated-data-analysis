@@ -5,7 +5,7 @@ from werkzeug.exceptions import HTTPException
 
 from app.data_exchange import bp as data_exchange_bp
 from app.extensions import storage, spec
-from app.handlers import handle_validation_error, handle_http_exception, handle_unexpected_error
+from app.handlers import handle_validation_error, handle_http_exception, handle_unexpected_error, handle_spec_422
 from app.main import bp as main_bp
 from app.preprocessing import bp as preprocessing_bp
 from app.reporting import bp as reporting_bp
@@ -23,14 +23,6 @@ def create_app(config_class: object = Config) -> Flask:
     }})
     storage.init_app(app)
     spec.register(app)
-    from flask_pydantic_spec import Request, Response, FlaskPydanticSpec#
-
-    def handle_spec_422(_req: Request, resp: Response, resp_validation_error: ValidationError,
-                        _instance: FlaskPydanticSpec) -> Response:
-        if resp_validation_error:
-            raise resp_validation_error
-        return resp
-
     spec.before = handle_spec_422
 
     @app.cli.command("cleanup")

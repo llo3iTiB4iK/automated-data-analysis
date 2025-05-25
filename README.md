@@ -4,13 +4,33 @@ This project is a **Flask-based web service** for automated data preprocessing a
 
 ---
 
-## 🌟 Features
+## 🚀 Features & Highlights
 
-* 📤 Upload tabular datasets (CSV, Excel, JSON, database dumps).
-* ⚙️ Flexible, parameterized preprocessing pipeline.
-* 💡 Automatic suggestions based on dataset/task type.
-* 📄 PDF report generation with metrics and visualizations.
-* 🧹 Temporary dataset management with automatic cleanup.
+* 📤 **Upload & Download**: Seamlessly upload and download tabular datasets (CSV, Excel, JSON, etc.).
+* ⚙️ **Flexible Preprocessing**: Utilize a flexible, parameterized preprocessing pipeline for data cleaning and transformation.
+* 💡 **Smart Suggestions**: Get automatic task-specific recommendations (regression, classification, clustering) based on your dataset type.
+* 📄 **Insightful Reporting**: Generate parameterized PDF reports complete with key metrics and visualizations.
+* 🧹 **Temporary Data Management**: Datasets are managed temporarily with automatic cleanup every 12 hours.
+* 🧠 **Stateless Design**: The service is stateless, operating without a database; all state is handled in memory or via temporary files.
+* 🔐 **Secure Uploads**: Uploaded datasets are sandboxed, and access requires an `X-Dataset-Token` for enhanced security.
+* ⚠️ **Robust Error Handling**: Features advanced error handling using Werkzeug and custom exceptions for a smooth user experience.
+* 📡 **RESTful API**: Interact with the service via a clear RESTful API, primarily using JSON for requests and responses (except file operations).
+* 🧱 **Modular Architecture**: Built with a clean, modular structure, making it easy to extend and maintain.
+* 🧾 **Self-Documenting API**: The API is self-documented using [`flask-pydantic-spec`](https://pypi.org/project/flask-pydantic-spec/).
+
+---
+
+## 📡 REST API Endpoints
+
+| Method | Endpoint                            | Description                                 |
+|--------|-------------------------------------|---------------------------------------------|
+| `GET`  | `/`                                 | API Docs links                              |
+| `POST` | `/datasets`                         | Upload a dataset                            |
+| `GET`  | `/datasets/<dataset_id>`            | Get dataset metadata                        |
+| `POST` | `/datasets/<dataset_id>/preprocess` | Apply preprocessing with parameters         |
+| `GET`  | `/datasets/<dataset_id>/download`   | Download preprocessed dataset               |
+| `GET`  | `/datasets/<dataset_id>/report`     | Generate PDF analytical report              |
+| `POST` | `/datasets/full_pipeline`           | Full pipeline: upload → preprocess → report |
 
 ---
 
@@ -18,8 +38,8 @@ This project is a **Flask-based web service** for automated data preprocessing a
 
 ```
 automated-data-analysis/
-├── app/                      
-│   ├── controllers/         # Core logic and helpers
+├── app/  
+│   ├── controllers/         # Core logic classes
 │   ├── data_exchange/       # Upload/download API blueprint
 │   ├── extensions/          # App-wide extensions (e.g., storage manager)
 │   ├── main/                # Not specific to any single module logic blueprint
@@ -55,7 +75,6 @@ python -m venv venv
 ```
 
 Activate it:
-
 * **Windows**:
 
   ```bash
@@ -81,32 +100,7 @@ python main.py
 
 ✅ You’re now ready to use the service locally at [http://localhost:5000](http://localhost:5000)!
 
----
-
-## 📡 REST API Endpoints
-
-| Method | Endpoint                         | Description                                  |
-|--------|----------------------------------|----------------------------------------------|
-| `GET`  | `/`                              | Application homepage                         |
-| `POST` | `/upload`                        | Upload a dataset                             |
-| `POST` | `/preprocess/<dataset_id>`       | Apply preprocessing with parameters          |
-| `GET`  | `/dataset_info/<dataset_id>`     | Get dataset metadata                         |
-| `GET`  | `/download/<dataset_id>`         | Download preprocessed dataset                |
-| `GET`  | `/recommendations/<dataset_id>`  | Generate PDF analytical report               |
-| `POST` | `/all_stages`                    | Full pipeline: upload → preprocess → report  |
-
----
-
-## 📝 Key Notes
-
-* 🔁 **Auto cleanup**: Datasets are deleted every 12 hours.
-* 🧠 **Stateless**: No DB; all state is in memory/temp files.
-* 🔐 **Security**: Uploads are sandboxed; access requires `X-Dataset-Token`.
-* 🧾 **Error Handling**: Informative JSON errors.
-* 📡 **RESTful API**: JSON in/out (except files and reports).
-* 🧱 **Modular**: Clean architecture for easy extension.
-
----
+-----
 
 ## ☁️ Deployment on PythonAnywhere
 
@@ -114,7 +108,7 @@ python main.py
 
 Visit [pythonanywhere.com](https://www.pythonanywhere.com) and create an account or log in.
 
----
+-----
 
 ### 2️⃣ Set Up Virtual Environment
 
@@ -129,7 +123,7 @@ pip install --no-cache-dir -r requirements.txt
 
 > ⚠️ If you hit memory errors, re-run `pip install` — installation requires ~500 MB.
 
----
+-----
 
 ### 3️⃣ Configure Web App
 
@@ -137,7 +131,6 @@ In the **Web** tab:
 
 * Click **Add a new web app**
 * Choose:
-
   * Domain: `Next >>`
   * Framework: `Manual configuration`
   * Python: `Python 3.10`
@@ -164,19 +157,22 @@ from main import app as application  # noqa
 
 🔁 Hit **Reload** at the top of the page
 
----
+-----
 
 ### 4️⃣ Add Scheduled Cleanup
 
 In the **Tasks** tab:
 
 * Click **Add a new scheduled task**
+
 * Command:
 
   ```bash
   workon myflaskenv && cd automated-data-analysis && flask cleanup
   ```
+
 * Set time/frequency as needed
+
 * Optionally add a description
 
 > ℹ️ On free-tier accounts:
@@ -185,7 +181,7 @@ In the **Tasks** tab:
 > * You must manually extend expiry in the **Consoles** tab
 > * Also extend app lifetime in the **Web** tab ("Run until 3 months from now")
 
----
+-----
 
 ✅ **Deployment Ready!**
 Your service is live at:

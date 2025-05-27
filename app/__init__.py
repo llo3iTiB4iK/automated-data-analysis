@@ -18,7 +18,7 @@ def create_app(config_class: object = Config) -> Flask:
 
     CORS(app, resources={r"/*": {
         "origins": "*",
-        "allow_headers": ["Content-Type", "X-Dataset-Token"],
+        "allow_headers": ["Content-Type", config_class.ACCESS_KEY_HEADER],  # noqa
         "methods": ["GET", "POST"]
     }})
     storage.init_app(app)

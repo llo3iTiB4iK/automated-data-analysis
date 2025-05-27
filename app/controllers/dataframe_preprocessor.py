@@ -78,10 +78,13 @@ class DataFramePreprocessor:
 
     def _apply_str_op(self, cols: ColumnList, func: Callable[[Any], Any], operation: str, el_wise: bool = True) -> None:
         columns = self._resolve_columns(cols)
+
+        def elem_func(x: Any) -> Any:
+            return func(x) if pd.notna(x) else x
+
         for col in columns:
             try:
-                self.data[col] = self.data[col].apply(lambda x: func(x) if pd.notna(x) else x) if el_wise \
-                    else func(self.data[col])
+                self.data[col] = self.data[col].apply(elem_func) if el_wise else func(self.data[col])
             except Exception:
                 raise TransformationError(operation, col)
 

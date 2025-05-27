@@ -42,7 +42,7 @@ automated-data-analysis/
 │   ├── controllers/         # Core logic classes
 │   ├── data_exchange/       # Upload/download API blueprint
 │   ├── extensions/          # App-wide extensions (e.g., storage manager)
-│   ├── main/                # Not specific to any single module logic blueprint
+│   ├── system/              # Application-level logic blueprint
 │   ├── models/              # Pydantic data validation models
 │   ├── preprocessing/       # Data transformation blueprint
 │   ├── reporting/           # PDF report generation blueprint
@@ -95,7 +95,7 @@ pip install -r requirements.txt
 ### 4️⃣ Run the Application
 
 ```bash
-python main.py
+python system.py
 ```
 
 ✅ You’re now ready to use the service locally at [http://localhost:5000](http://localhost:5000)!

@@ -89,17 +89,18 @@ class DataFrameReport(FPDF):
 
     def _add_subplots_row(self, plot_funcs: list[callable], cols: int = 2, suptitle: str = None) -> None:
         fig, axes = plt.subplots(1, cols, figsize=(5 * cols, 5))
-        if cols == 1:
-            axes = [axes]
-        for i, plot_func in enumerate(plot_funcs):
-            plot_func(axes[i])
-        for j in range(len(plot_funcs), cols):
-            axes[j].set_xticks([])
-            axes[j].set_yticks([])
-            axes[j].set_facecolor('white')
-        plt.tight_layout(pad=1.0)
+        axes = axes if cols > 1 else [axes]
+
+        for ax, func in zip(axes, plot_funcs):
+            func(ax)
+
+        for ax in axes[len(plot_funcs):]:
+            ax.axis('off')
+
         if suptitle:
             fig.suptitle(suptitle, fontsize=cols*7, fontweight='bold', y=1.05)
+
+        plt.tight_layout(pad=1.0)
         self.add_plot()
 
     def add_subplots(self, plot_funcs: list[callable], cols: int = 2, suptitle: str = None) -> None:

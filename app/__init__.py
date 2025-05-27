@@ -6,7 +6,7 @@ from werkzeug.exceptions import HTTPException
 from app.data_exchange import bp as data_exchange_bp
 from app.extensions import storage, spec
 from app.handlers import handle_validation_error, handle_http_exception, handle_unexpected_error, handle_spec_422
-from app.main import bp as main_bp
+from app.system import bp as system_bp
 from app.preprocessing import bp as preprocessing_bp
 from app.reporting import bp as reporting_bp
 from config import Config
@@ -29,7 +29,7 @@ def create_app(config_class: object = Config) -> Flask:
     def cleanup_command():
         storage.cleanup()
 
-    app.register_blueprint(main_bp)
+    app.register_blueprint(system_bp)
     app.register_blueprint(data_exchange_bp)
     app.register_blueprint(preprocessing_bp)
     app.register_blueprint(reporting_bp)

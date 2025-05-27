@@ -30,7 +30,7 @@ def handle_validation_error(e: ValidationError) -> tuple[FlaskResponse, int]:
 
 
 def handle_unexpected_error(e: Exception) -> tuple[FlaskResponse, int]:
-    service_name = request.blueprint or "main"
+    service_name = request.blueprint or "APP"
     tb_str = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
     print(f"[{service_name}] Unexpected error:\n{tb_str}")
     return handle_http_exception(InternalServerError())

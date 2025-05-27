@@ -63,7 +63,7 @@ class DataFrameAnalyzer:
             self._report.add_text(f"* {len(group)} {label} meaningful features were found. Consider using them in {params.task}:")
             # Visual summary
             if 3 <= len(group) <= 7 and self._include_visualizations:
-                sns.heatmap(pd.DataFrame(group).T, annot=True, square=True, cbar=False, vmin=low, vmax=high, cmap='coolwarm')
+                sns.heatmap(pd.DataFrame(group).T, annot=True, square=True, cbar=False, vmin=low, vmax=high, cmap='coolwarm', linewidth=.5)
                 self._report.add_plot(title=params.name.title())
             else:
                 self._report.add_series(group)
@@ -115,7 +115,7 @@ class DataFrameAnalyzer:
         # Correlation
 
         def plot_corr(ax: plt.Axes, feature: str) -> plt.Axes:
-            sns.regplot(self._data, x=target, y=feature, line_kws={"color": "orange"}, ax=ax)
+            sns.regplot(x=y, y=self._data[feature], line_kws={"color": "orange"}, ax=ax)
 
         return self.FeatureSelectionParams(
             metrics=self._data.corr(numeric_only=True)[target],
@@ -127,15 +127,16 @@ class DataFrameAnalyzer:
 
     def __classification_recs(self, target: str) -> FeatureSelectionParams | None:
         y = self.__validate_target(target)
-        if pd.api.types.is_bool_dtype(y) or y.dtype == 'category':
+        if pd.api.types.is_bool_dtype(y) or y.dtype == 'category' or (y.dtype == 'object' and y.nunique(True) <= 10):
             self._report.add_text(f"* Target column '{target}' seems to be discrete ({y.dtype}).")
+            y = y.astype('category')
         else:
             self._report.add_text(f"* Target column '{target}' seems to be continuous or containing raw text data.\n"
                                   f"- No classification analysis can be performed.\n* Number of unique values: {y.nunique(True)}.")
             return
 
         if self._include_visualizations:
-            sns.countplot(x=y, hue=y)
+            sns.countplot(x=y, hue=y, legend=False)
             self._report.add_plot(f"'{target}' class distribution")
         # Class balance
         counts = y.value_counts(normalize=True)
@@ -159,19 +160,16 @@ class DataFrameAnalyzer:
         # Mutual info
 
         def plot_mi(ax: plt.Axes, feature: str) -> plt.Axes:
-            sns.boxplot(self._data, x=feature, y=target, hue=target, ax=ax)
+            sns.boxplot(x=self._data[feature], y=y, hue=y, ax=ax, legend=False)
 
         nums = self._data.select_dtypes('number')
-
-        df_valid = self._data[nums.columns.tolist() + [target]].dropna()
-        nums_valid = df_valid[nums.columns]
-        y_valid = df_valid[target]
-
         if nums.shape[1] == 0:
             return
 
+        valid_idx = pd.concat([nums, y], axis=1).dropna().index
+
         return self.FeatureSelectionParams(
-            metrics=pd.Series(mutual_info_classif(nums_valid, y_valid, random_state=42), index=nums.columns, name=target),
+            metrics=pd.Series(mutual_info_classif(nums.loc[valid_idx], y.loc[valid_idx], random_state=42), index=nums.columns, name=target),
             levels={'highly': (0.1, 1.0), 'moderately': (0.05, 0.1), 'low': (0.01, 0.05)},
             name='mutual information',
             task='classification',
@@ -278,7 +276,7 @@ class DataFrameAnalyzer:
                 'Missing': df.isna().sum(),
                 'Non-missing': df.notna().sum()
             })
-            missing_df.plot(kind='barh', stacked=True, title="Missing values by column")
+            missing_df.plot(kind='barh', stacked=True, title="Missing values by column", xlabel="Count")
             self._report.add_plot()
 
         # Descriptive statistics

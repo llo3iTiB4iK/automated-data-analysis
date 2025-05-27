@@ -3,14 +3,14 @@ from flask_pydantic_spec import FileResponse, MultipartFormRequest
 
 from app.controllers import DataFrameLoader, DataFramePreprocessor, DataFrameAnalyzer
 from app.extensions import spec
-from app.main import bp
+from app.system import bp
 from app.models import FullPipelineParams
 from app.errors import ParameterMissing
 
 
 @bp.route("/")
 def index() -> Response:
-    ui_set = spec.config._SUPPORT_UI  # noqa
+    ui_set = spec.config._SUPPORT_UI | {spec.config.FILENAME}  # noqa
     base_url = request.host_url.rstrip("/")
     return jsonify({
         "message": "Welcome to the Automated Data Analysis Web Service",

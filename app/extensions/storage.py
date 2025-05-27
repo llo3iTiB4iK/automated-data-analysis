@@ -72,6 +72,6 @@ class Storage:
             data.to_pickle(full_path)
         except OSError:
             raise InternalServerError(f"Failed to save your dataset. Try again later or consider using "
-                                      f"'{url_for('main.analyze_data')}' endpoint for all-in-one request.")
+                                      f"'{url_for('system.analyze_data')}' endpoint for all-in-one request.")
 
         return dataset_id, access_key

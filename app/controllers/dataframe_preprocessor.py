@@ -80,7 +80,7 @@ class DataFramePreprocessor:
         columns = self._resolve_columns(cols)
         for col in columns:
             try:
-                self.data.loc[:, col] = self.data[col].apply(lambda x: func(x) if pd.notna(x) else x) if el_wise \
+                self.data[col] = self.data[col].apply(lambda x: func(x) if pd.notna(x) else x) if el_wise \
                     else func(self.data[col])
             except Exception:
                 raise TransformationError(operation, col)

@@ -1,905 +1,1457 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Analysis Service</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    <!-- Custom styles -->
-    <style>
-        .spinner-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(255, 255, 255, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .column-select {
-            min-height: 100px;
-        }
-        .info-icon {
-            cursor: help;
-            color: #6c757d;
-            margin-left: 5px;
-        }
-        .tooltip-inner {
-            max-width: 300px;
-            text-align: left;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Analysis Service</title>
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<!-- Custom styles -->
+<style>
+    .spinner-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+    .column-select {
+        min-height: 100px;
+    }
+    .info-icon {
+        cursor: help;
+        color: #6c757d;
+        margin-left: 5px;
+    }
+    .tooltip-inner {
+        max-width: 300px;
+        text-align: left;
+    }
+</style>
 </head>
 <body>
-    <div class="container py-4">
-        <header class="pb-3 mb-4 border-bottom">
-            <h1 class="display-5 fw-bold">Automated Data Analysis</h1>
-            <p class="fs-4">Upload your data file and follow the steps to analyze it</p>
-        </header>
+<div class="container py-4">
+    <header class="pb-3 mb-4 border-bottom">
+        <h1 class="display-5 fw-bold">Automated Data Analysis</h1>
+        <p class="fs-4">Upload your data file and follow the steps to analyze it</p>
+    </header>
 
-        <!-- Global error alert -->
-        <div id="error-alert" class="alert alert-danger alert-dismissible fade show d-none">
-            <div id="error-message">Error message will appear here</div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <!-- Global error alert -->
+    <div id="error-alert" class="alert alert-danger alert-dismissible fade show d-none">
+        <div id="error-message">Error message will appear here</div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <!-- Dataset selector -->
+    <div id="dataset-selector" class="mb-3 d-none">
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="datasetRadio" id="originalDataset" checked>
+            <label class="form-check-label" for="originalDataset">
+                Original Dataset
+            </label>
         </div>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="datasetRadio" id="processedDataset">
+            <label class="form-check-label" for="processedDataset">
+                Processed Dataset
+            </label>
+        </div>
+    </div>
 
-        <!-- Dataset selector -->
-        <div id="dataset-selector" class="mb-3 d-none">
-            <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="datasetRadio" id="originalDataset" checked>
-                <label class="form-check-label" for="originalDataset">
-                    Original Dataset
-                </label>
-            </div>
-            <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="datasetRadio" id="processedDataset">
-                <label class="form-check-label" for="processedDataset">
-                    Processed Dataset
-                </label>
+    <!-- Manual Dataset ID Entry -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Connect to Existing Dataset</h5>
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label for="manual-dataset-id" class="form-label">Dataset ID</label>
+                    <input type="text" class="form-control" id="manual-dataset-id" placeholder="Enter dataset ID">
+                </div>
+                <div class="col-md-5">
+                    <label for="manual-access-key" class="form-label">Access Key</label>
+                    <input type="text" class="form-control" id="manual-access-key" placeholder="Enter access key">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button id="connect-dataset-btn" class="btn btn-primary w-100">Connect</button>
+                </div>
             </div>
         </div>
+    </div>
 
-        <div class="row">
-            <div class="col-12">
-                <ul class="nav nav-tabs" id="myTab">
-                    <li class="nav-item">
-                        <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" aria-controls="upload" aria-selected="true">Upload</button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" aria-controls="info" aria-selected="false">Info</button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" id="preprocess-tab" data-bs-toggle="tab" data-bs-target="#preprocess" type="button" aria-controls="preprocess" aria-selected="false">Preprocess</button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report" type="button" aria-controls="report" aria-selected="false">Report</button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" id="download-tab" data-bs-toggle="tab" data-bs-target="#download" type="button" aria-controls="download" aria-selected="false">Download</button>
-                    </li>
-                </ul>
+    <div class="row">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="myTab">
+                <li class="nav-item">
+                    <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" aria-controls="upload" aria-selected="true">Upload</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" aria-controls="info" aria-selected="false">Info</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="preprocess-tab" data-bs-toggle="tab" data-bs-target="#preprocess" type="button" aria-controls="preprocess" aria-selected="false">Preprocess</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report" type="button" aria-controls="report" aria-selected="false">Report</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="download-tab" data-bs-toggle="tab" data-bs-target="#download" type="button" aria-controls="download" aria-selected="false">Download</button>
+                </li>
+            </ul>
 
-                <div class="tab-content" id="myTabContent">
-                    <!-- Upload Tab -->
-                    <div class="tab-pane fade show active py-4" id="upload">
-                        <div class="card">
-                            <div class="card-body">
-                                <form id="upload-form">
-                                    <div class="mb-3">
-                                        <label for="file" class="form-label">Upload your data file</label>
-                                        <input class="form-control" type="file" id="file" name="file">
-                                        <div id="upload-error" class="invalid-feedback"></div>
-                                    </div>
+            <div class="tab-content" id="myTabContent">
+                <!-- Upload Tab -->
+                <div class="tab-pane fade show active py-4" id="upload">
+                    <div class="card">
+                        <div class="card-body">
+                            <form id="upload-form">
+                                <div class="mb-3">
+                                    <label for="file" class="form-label">Upload your data file</label>
+                                    <input class="form-control" type="file" id="file" name="file">
+                                    <div id="upload-error" class="invalid-feedback"></div>
+                                </div>
 
-                                    <!-- Loading Parameters Section -->
-                                    <div class="mt-4 pt-3 border-top">
-                                        <h5>Loading Parameters</h5>
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label for="sep" class="form-label">
-                                                    Separator
-                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Alternative separator. Overrides delimiter if provided."></i>
-                                                </label>
-                                                <input type="text" class="form-control" id="sep" name="sep" placeholder="," maxlength="1">
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <label for="thousands" class="form-label">
-                                                    Thousands Separator
-                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Character used as thousands separator in numeric values."></i>
-                                                </label>
-                                                <input type="text" class="form-control" id="thousands" name="thousands" placeholder="," maxlength="1">
-                                            </div>
+                                <!-- Loading Parameters Section -->
+                                <div class="mt-4 pt-3 border-top">
+                                    <h5>Loading Parameters</h5>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="separator" class="form-label">
+                                                Separator
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Character used to separate fields in CSV files."></i>
+                                            </label>
+                                            <input type="text" class="form-control" id="separator" name="separator" placeholder="," maxlength="1">
                                         </div>
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label for="decimal" class="form-label">
-                                                    Decimal Separator
-                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Character used as decimal separator in numeric values."></i>
-                                                </label>
-                                                <input type="text" class="form-control" id="decimal" name="decimal" placeholder="." maxlength="1">
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <label for="sheet_name" class="form-label">
-                                                    Sheet Name
-                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Name of the sheet to read from Excel files."></i>
-                                                </label>
-                                                <input type="text" class="form-control" id="sheet_name" name="sheet_name" placeholder="Sheet1">
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label for="table_name" class="form-label">
-                                                    Table Name
-                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Name of the table to read from database files."></i>
-                                                </label>
-                                                <input type="text" class="form-control" id="table_name" name="table_name" placeholder="Table1">
-                                            </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="thousands" class="form-label">
+                                                Thousands Separator
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Character used as thousands separator in numeric values."></i>
+                                            </label>
+                                            <input type="text" class="form-control" id="thousands" name="thousands" placeholder="," maxlength="1">
                                         </div>
                                     </div>
-
-                                    <div class="d-grid gap-2 d-md-flex">
-                                        <button type="button" id="upload-btn" class="btn btn-primary me-md-2">Upload File</button>
-                                        <button type="button" id="all-stages-btn" class="btn btn-outline-secondary">Run All Stages (Quick Analysis)</button>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="decimal" class="form-label">
+                                                Decimal Separator
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Character used as decimal separator in numeric values."></i>
+                                            </label>
+                                            <input type="text" class="form-control" id="decimal" name="decimal" placeholder="." maxlength="1">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="sheet_name" class="form-label">
+                                                Sheet Name
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Name or index of the sheet to read from Excel files."></i>
+                                            </label>
+                                            <input type="text" class="form-control" id="sheet_name" name="sheet_name" placeholder="0">
+                                        </div>
                                     </div>
-                                </form>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="table_name" class="form-label">
+                                                Table Name
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Name of the table to read from database files."></i>
+                                            </label>
+                                            <input type="text" class="form-control" id="table_name" name="table_name" placeholder="Table1">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- All Stages Checkbox -->
+                                <div class="mt-4 pt-3 border-top">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="all_stages" name="all_stages">
+                                        <label class="form-check-label" for="all_stages">
+                                            <strong>Run All Stages (Quick Analysis)</strong>
+                                            <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Upload, preprocess, and generate report in one step."></i>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Preprocessing Parameters (shown when all_stages is checked) -->
+                                <div id="all-stages-preprocessing" class="mt-4 pt-3 border-top d-none">
+                                    <h5>Preprocessing Parameters</h5>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="as_make_copy" name="make_copy">
+                                                <label class="form-check-label" for="as_make_copy">Create a copy of the dataset</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="as_drop_duplicates" name="drop_duplicates">
+                                                <label class="form-check-label" for="as_drop_duplicates">Drop Duplicates</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="as_drop_outliers" name="drop_outliers">
+                                                <label class="form-check-label" for="as_drop_outliers">Drop Outliers</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="as_scale_numeric" name="scale_numeric">
+                                                <label class="form-check-label" for="as_scale_numeric">Scale Numeric Columns</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="as_drop_na" class="form-label">Drop NA</label>
+                                            <select class="form-select" id="as_drop_na" name="drop_na">
+                                                <option value="">Don't drop</option>
+                                                <option value="rows">Drop Rows</option>
+                                                <option value="columns">Drop Columns</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="as_scaling_method" class="form-label">Scaling Method</label>
+                                            <select class="form-select" id="as_scaling_method" name="scaling_method">
+                                                <option value="z_score">Z-Score (Standard Scaling)</option>
+                                                <option value="max_abs_scaling">Max Abs Scaling</option>
+                                                <option value="min_max_scaling">Min-Max Scaling</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <!-- Column-based operations with text inputs -->
+                                    <h6 class="mt-4">Column Operations</h6>
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <label for="as_case_insensitive_columns" class="form-label">
+                                                Case Insensitive Columns
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Comma-separated column names to convert to lowercase. Use '*' for all columns."></i>
+                                            </label>
+                                            <input type="text" class="form-control" id="as_case_insensitive_columns" name="case_insensitive_columns" placeholder="col1, col2 or *">
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="as_clear_punct_columns" class="form-label">
+                                                Clear Punctuation Columns
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Comma-separated column names to remove punctuation from. Use '*' for all columns."></i>
+                                            </label>
+                                            <input type="text" class="form-control" id="as_clear_punct_columns" name="clear_punct_columns" placeholder="col1, col2 or *">
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="as_clear_digits_columns" class="form-label">
+                                                Clear Digits Columns
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Comma-separated column names to remove digits from. Use '*' for all columns."></i>
+                                            </label>
+                                            <input type="text" class="form-control" id="as_clear_digits_columns" name="clear_digits_columns" placeholder="col1, col2 or *">
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <label for="as_datetime_columns" class="form-label">
+                                                Datetime Columns
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Comma-separated column names to convert to datetime. Use '*' for all columns."></i>
+                                            </label>
+                                            <input type="text" class="form-control" id="as_datetime_columns" name="datetime_columns" placeholder="col1, col2 or *">
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="as_category_columns" class="form-label">
+                                                Category Columns
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Comma-separated column names to convert to category. Use '*' for all columns."></i>
+                                            </label>
+                                            <input type="text" class="form-control" id="as_category_columns" name="category_columns" placeholder="col1, col2 or *">
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="as_index_cols" class="form-label">
+                                                Index Columns
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Comma-separated column names to use as index. Use '*' for all columns."></i>
+                                            </label>
+                                            <input type="text" class="form-control" id="as_index_cols" name="index_cols" placeholder="col1, col2 or *">
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="as_duplicate_subset" class="form-label">
+                                                Duplicate Subset Columns
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Comma-separated column names to consider for duplicate detection. Use '*' for all columns."></i>
+                                            </label>
+                                            <input type="text" class="form-control" id="as_duplicate_subset" name="duplicate_subset" placeholder="col1, col2 or *">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="as_fill_na_values" class="form-label">
+                                                Fill NA Values
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title='JSON object to fill missing values. Example: {"col1\": 0, \"col2\": \"unknown\"}'></i>
+                                            </label>
+                                            <input type="text" class="form-control" id="as_fill_na_values" name="fill_na_values" placeholder='{"col1": 0, "col2": "unknown"}'>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Analysis Parameters (shown when all_stages is checked) -->
+                                <div id="all-stages-analysis" class="mt-4 pt-3 border-top d-none">
+                                    <h5>Analysis Parameters</h5>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="as_analysis_task" class="form-label">Analysis Task</label>
+                                            <select class="form-select" id="as_analysis_task" name="analysis_task" required>
+                                                <option value="regression">Regression</option>
+                                                <option value="classification">Classification</option>
+                                                <option value="clusterization">Clusterization</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="as_target_col" class="form-label">
+                                                Target Column
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Column name to predict (for regression/classification) or to exclude from clustering."></i>
+                                            </label>
+                                            <input type="text" class="form-control" id="as_target_col" name="target_col" placeholder="target_column_name">
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="as_theme" class="form-label">Report Theme</label>
+                                            <select class="form-select" id="as_theme" name="theme">
+                                                <option value="light">Light</option>
+                                                <option value="dark">Dark</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="as_dpi" class="form-label">DPI (Image Quality)</label>
+                                            <input type="number" class="form-control" id="as_dpi" name="dpi" value="200" min="50" max="600">
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="as_include_basic_stats" name="include_basic_stats" checked>
+                                                <label class="form-check-label" for="as_include_basic_stats">Include Basic Statistics</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="as_include_visualizations" name="include_visualizations" checked>
+                                                <label class="form-check-label" for="as_include_visualizations">Include Visualizations</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="as_show_time" name="show_time" checked>
+                                                <label class="form-check-label" for="as_show_time">Show Timestamp</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-grid gap-2 d-md-flex">
+                                    <button type="button" id="upload-btn" class="btn btn-primary me-md-2">
+                                        <span id="upload-btn-text">Upload File</span>
+                                    </button>
+                                    <button type="button" id="all-stages-btn" class="btn btn-outline-secondary d-none">Run All Stages (Quick Analysis)</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info Tab -->
+                <div class="tab-pane fade py-4" id="info">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="card-title">Dataset Information</h5>
+                                <button id="refresh-info" class="btn btn-sm btn-outline-secondary">Refresh</button>
+                            </div>
+
+                            <div id="metadata-container">
+                                <!-- Metadata will be inserted here -->
+                            </div>
+
+                            <div id="info-error" class="alert alert-danger mt-3 d-none"></div>
+
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+                                <button id="to-preprocess" class="btn btn-primary">Continue to Preprocessing</button>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Info Tab -->
-                    <div class="tab-pane fade py-4" id="info">
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h5 class="card-title">Dataset Information</h5>
-                                    <button id="refresh-info" class="btn btn-sm btn-outline-secondary">Refresh</button>
+                <!-- Preprocess Tab -->
+                <div class="tab-pane fade py-4" id="preprocess">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Preprocess Dataset</h5>
+
+                            <form id="preprocess-form">
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="make_copy" name="make_copy">
+                                    <label class="form-check-label" for="make_copy">Create a copy of the dataset</label>
                                 </div>
 
-                                <div id="metadata-container">
-                                    <!-- Metadata will be inserted here -->
+                                <!-- Preprocessing Parameters Section -->
+                                <div class="mt-4 pt-3 border-top">
+                                    <h5>Text Processing</h5>
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <label for="case_insensitive_columns" class="form-label">
+                                                Case Insensitive Columns
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Columns to convert to lowercase. Select '*' for all columns."></i>
+                                            </label>
+                                            <select class="form-select column-select" id="case_insensitive_columns" name="case_insensitive_columns" multiple>
+                                                <option value="*">All Columns (*)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="clear_punct_columns" class="form-label">
+                                                Clear Punctuation Columns
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Columns to remove punctuation from. Select '*' for all columns."></i>
+                                            </label>
+                                            <select class="form-select column-select" id="clear_punct_columns" name="clear_punct_columns" multiple>
+                                                <option value="*">All Columns (*)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="clear_digits_columns" class="form-label">
+                                                Clear Digits Columns
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Columns to remove digits from. Select '*' for all columns."></i>
+                                            </label>
+                                            <select class="form-select column-select" id="clear_digits_columns" name="clear_digits_columns" multiple>
+                                                <option value="*">All Columns (*)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <h5 class="mt-4">Row Selection</h5>
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <label for="row_range_start" class="form-label">
+                                                Row Range Start
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Starting row index (1-based)."></i>
+                                            </label>
+                                            <input type="number" class="form-control" id="row_range_start" name="row_range_start" min="1">
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="row_range_end" class="form-label">
+                                                Row Range End
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Ending row index (inclusive)."></i>
+                                            </label>
+                                            <input type="number" class="form-control" id="row_range_end" name="row_range_end" min="1">
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="row_range_step" class="form-label">
+                                                Row Range Step
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Step size for row selection."></i>
+                                            </label>
+                                            <input type="number" class="form-control" id="row_range_step" name="row_range_step" min="1">
+                                        </div>
+                                    </div>
+
+                                    <h5 class="mt-4">Index Columns</h5>
+                                    <div class="row">
+                                        <div class="col-md-12 mb-3">
+                                            <label for="index_cols" class="form-label">
+                                                Index Columns
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Columns to use as index. Select '*' for all columns."></i>
+                                            </label>
+                                            <select class="form-select column-select" id="index_cols" name="index_cols" multiple>
+                                                <option value="*">All Columns (*)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <h5 class="mt-4">Missing Values</h5>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="fill_na_values" class="form-label">
+                                                Fill NA Values
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="JSON value to fill missing values with. Example: {'col1': 0, 'col2': 'unknown'}"></i>
+                                            </label>
+                                            <input type="text" class="form-control" id="fill_na_values" name="fill_na_values" placeholder='{"col1": 0, "col2": "unknown"}'>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="drop_na" class="form-label">
+                                                Drop NA
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Drop rows or columns with missing values."></i>
+                                            </label>
+                                            <select class="form-select" id="drop_na" name="drop_na">
+                                                <option value="">Don't drop</option>
+                                                <option value="rows">Drop Rows</option>
+                                                <option value="columns">Drop Columns</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="mfill" name="mfill">
+                                                <label class="form-check-label" for="mfill">
+                                                    Mean Fill
+                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Fill missing values with column mean."></i>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="ffill" name="ffill">
+                                                <label class="form-check-label" for="ffill">
+                                                    Forward Fill
+                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Fill missing values with previous value."></i>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="bfill" name="bfill">
+                                                <label class="form-check-label" for="bfill">
+                                                    Backward Fill
+                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Fill missing values with next value."></i>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <h5 class="mt-4">Outliers and Duplicates</h5>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="drop_outliers" name="drop_outliers">
+                                                <label class="form-check-label" for="drop_outliers">
+                                                    Drop Outliers
+                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Remove rows with outlier values."></i>
+                                                </label>
+                                            </div>
+                                            <div class="mt-2">
+                                                <label for="outliers_threshold" class="form-label">
+                                                    Outliers Threshold
+                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Z-score threshold for outlier detection."></i>
+                                                </label>
+                                                <input type="number" class="form-control" id="outliers_threshold" name="outliers_threshold" min="0.1" step="0.1" value="3.0">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="drop_duplicates" name="drop_duplicates">
+                                                <label class="form-check-label" for="drop_duplicates">
+                                                    Drop Duplicates
+                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Remove duplicate rows."></i>
+                                                </label>
+                                            </div>
+                                            <div class="mt-2">
+                                                <label for="duplicate_subset" class="form-label">
+                                                    Duplicate Subset
+                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Columns to consider for duplicate detection. Select '*' for all columns."></i>
+                                                </label>
+                                                <select class="form-select column-select" id="duplicate_subset" name="duplicate_subset" multiple>
+                                                    <option value="*">All Columns (*)</option>
+                                                </select>
+                                            </div>
+                                            <div class="mt-2">
+                                                <label for="duplicate_keep" class="form-label">
+                                                    Duplicate Keep
+                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Which duplicate to keep."></i>
+                                                </label>
+                                                <select class="form-select" id="duplicate_keep" name="duplicate_keep">
+                                                    <option value="first">First</option>
+                                                    <option value="last">Last</option>
+                                                    <option value="false">None</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <h5 class="mt-4">Column Types</h5>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="datetime_columns" class="form-label">
+                                                Datetime Columns
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Columns to convert to datetime. Select '*' for all columns."></i>
+                                            </label>
+                                            <select class="form-select column-select" id="datetime_columns" name="datetime_columns" multiple>
+                                                <option value="*">All Columns (*)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="category_columns" class="form-label">
+                                                Category Columns
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Columns to convert to category. Select '*' for all columns."></i>
+                                            </label>
+                                            <select class="form-select column-select" id="category_columns" name="category_columns" multiple>
+                                                <option value="*">All Columns (*)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <h5 class="mt-4">Category Handling</h5>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="join_small_cat" name="join_small_cat">
+                                                <label class="form-check-label" for="join_small_cat">
+                                                    Join Small Categories
+                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Combine small categories into a single category."></i>
+                                                </label>
+                                            </div>
+                                            <div class="mt-2">
+                                                <label for="joined_category_name" class="form-label">
+                                                    Joined Category Name
+                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Name for the combined small categories."></i>
+                                                </label>
+                                                <input type="text" class="form-control" id="joined_category_name" name="joined_category_name" value="Other">
+                                            </div>
+                                            <div class="mt-2">
+                                                <label for="categories_threshold" class="form-label">
+                                                    Categories Threshold
+                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Percentage threshold for small categories (0-1)."></i>
+                                                </label>
+                                                <input type="number" class="form-control" id="categories_threshold" name="categories_threshold" min="0" max="1" step="0.01">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="scale_numeric" name="scale_numeric">
+                                                <label class="form-check-label" for="scale_numeric">
+                                                    Scale Numeric Columns
+                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Scale numeric columns to a standard range."></i>
+                                                </label>
+                                            </div>
+                                            <div class="mt-2">
+                                                <label for="scaling_method" class="form-label">
+                                                    Scaling Method
+                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Method to use for scaling numeric columns."></i>
+                                                </label>
+                                                <select class="form-select" id="scaling_method" name="scaling_method">
+                                                    <option value="z_score">Z-Score (Standard Scaling)</option>
+                                                    <option value="max_abs_scaling">Max Abs Scaling</option>
+                                                    <option value="min_max_scaling">Min-Max Scaling</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div id="info-error" class="alert alert-danger mt-3 d-none"></div>
+                                <div id="preprocess-error" class="alert alert-danger mt-3 d-none"></div>
 
-                                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
-                                    <button id="to-preprocess" class="btn btn-primary">Continue to Preprocessing</button>
+                                <div class="d-grid gap-2 mt-4">
+                                    <button type="button" id="preprocess-btn" class="btn btn-primary">Preprocess Data</button>
                                 </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Tab -->
+                <div class="tab-pane fade py-4" id="report">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Generate Report</h5>
+
+                            <p class="card-text">Generate a PDF report with recommendations based on your data analysis.</p>
+
+                            <form id="report-form">
+                                <!-- Analysis Parameters Section -->
+                                <div class="mt-4 pt-3 border-top">
+                                    <h5>Analysis Parameters</h5>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="analysis_task" class="form-label">
+                                                Analysis Task
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Type of analysis to perform on the dataset."></i>
+                                            </label>
+                                            <select class="form-select" id="analysis_task" name="analysis_task" required>
+                                                <option value="regression">Regression</option>
+                                                <option value="classification">Classification</option>
+                                                <option value="clusterization">Clusterization</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="target_col" class="form-label">
+                                                Target Column
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Column to predict (for regression/classification) or to exclude from clustering."></i>
+                                            </label>
+                                            <select class="form-select" id="target_col" name="target_col">
+                                                <option value="">Select a column</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <h5 class="mt-4">Report Options</h5>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="include_basic_stats" name="include_basic_stats" checked>
+                                                <label class="form-check-label" for="include_basic_stats">
+                                                    Include Basic Statistics
+                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Include basic statistical information in the report."></i>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="include_visualizations" name="include_visualizations" checked>
+                                                <label class="form-check-label" for="include_visualizations">
+                                                    Include Visualizations
+                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Include charts and graphs in the report."></i>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <label for="dpi" class="form-label">
+                                                DPI (Image Quality)
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Resolution for images in the report (higher = better quality)."></i>
+                                            </label>
+                                            <input type="number" class="form-control" id="dpi" name="dpi" value="200" min="50" max="600">
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="theme" class="form-label">
+                                                Theme
+                                                <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Visual theme for the report."></i>
+                                            </label>
+                                            <select class="form-select" id="theme" name="theme">
+                                                <option value="light">Light</option>
+                                                <option value="dark">Dark</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <div class="form-check mt-4">
+                                                <input class="form-check-input" type="checkbox" id="show_time" name="show_time" checked>
+                                                <label class="form-check-label" for="show_time">
+                                                    Show Timestamp
+                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Include generation timestamp in the report."></i>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="report-error" class="alert alert-danger mt-3 d-none"></div>
+                                <div id="report-success" class="alert alert-success mt-3 d-none">
+                                    Report generated successfully!
+                                </div>
+
+                                <div class="d-grid gap-2">
+                                    <button type="button" id="report-btn" class="btn btn-primary">Generate Report</button>
+                                </div>
+                            </form>
+
+                            <div id="report-result" class="alert alert-success mt-3 d-none">
+                                <p>Your report has been generated and opened in a new tab.</p>
+                                <button id="open-report-again" class="btn btn-outline-primary btn-sm">Open Report Again</button>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Preprocess Tab -->
-                    <div class="tab-pane fade py-4" id="preprocess">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Preprocess Dataset</h5>
+                <!-- Download Tab -->
+                <div class="tab-pane fade py-4" id="download">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Download Dataset</h5>
 
-                                <form id="preprocess-form">
-                                    <div class="mb-3 form-check">
-                                        <input type="checkbox" class="form-check-input" id="make_copy" name="make_copy">
-                                        <label class="form-check-label" for="make_copy">Create a copy of the dataset</label>
-                                    </div>
+                            <p class="card-text">Download your processed dataset in your preferred format.</p>
 
-                                    <!-- Preprocessing Parameters Section -->
-                                    <div class="mt-4 pt-3 border-top">
-                                        <h5>Text Processing</h5>
-                                        <div class="row">
-                                            <div class="col-md-4 mb-3">
-                                                <label for="case_insensitive_columns" class="form-label">
-                                                    Case Insensitive Columns
-                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Columns to convert to lowercase. Select '*' for all columns."></i>
-                                                </label>
-                                                <select class="form-select column-select" id="case_insensitive_columns" name="case_insensitive_columns" multiple>
-                                                    <option value="*">All Columns (*)</option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-4 mb-3">
-                                                <label for="clear_punct_columns" class="form-label">
-                                                    Clear Punctuation Columns
-                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Columns to remove punctuation from. Select '*' for all columns."></i>
-                                                </label>
-                                                <select class="form-select column-select" id="clear_punct_columns" name="clear_punct_columns" multiple>
-                                                    <option value="*">All Columns (*)</option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-4 mb-3">
-                                                <label for="clear_digits_columns" class="form-label">
-                                                    Clear Digits Columns
-                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Columns to remove digits from. Select '*' for all columns."></i>
-                                                </label>
-                                                <select class="form-select column-select" id="clear_digits_columns" name="clear_digits_columns" multiple>
-                                                    <option value="*">All Columns (*)</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <h5 class="mt-4">Row Selection</h5>
-                                        <div class="row">
-                                            <div class="col-md-4 mb-3">
-                                                <label for="row_range_start" class="form-label">
-                                                    Row Range Start
-                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Starting row index (1-based)."></i>
-                                                </label>
-                                                <input type="number" class="form-control" id="row_range_start" name="row_range_start" min="1">
-                                            </div>
-                                            <div class="col-md-4 mb-3">
-                                                <label for="row_range_end" class="form-label">
-                                                    Row Range End
-                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Ending row index (inclusive)."></i>
-                                                </label>
-                                                <input type="number" class="form-control" id="row_range_end" name="row_range_end" min="1">
-                                            </div>
-                                            <div class="col-md-4 mb-3">
-                                                <label for="row_range_step" class="form-label">
-                                                    Row Range Step
-                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Step size for row selection."></i>
-                                                </label>
-                                                <input type="number" class="form-control" id="row_range_step" name="row_range_step" min="1">
-                                            </div>
-                                        </div>
-
-                                        <h5 class="mt-4">Index Columns</h5>
-                                        <div class="row">
-                                            <div class="col-md-12 mb-3">
-                                                <label for="index_cols" class="form-label">
-                                                    Index Columns
-                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Columns to use as index. Select '*' for all columns."></i>
-                                                </label>
-                                                <select class="form-select column-select" id="index_cols" name="index_cols" multiple>
-                                                    <option value="*">All Columns (*)</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <h5 class="mt-4">Missing Values</h5>
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label for="fill_na_values" class="form-label">
-                                                    Fill NA Values
-                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="JSON value to fill missing values with. Example: {'col1': 0, 'col2': 'unknown'}"></i>
-                                                </label>
-                                                <input type="text" class="form-control" id="fill_na_values" name="fill_na_values" placeholder='{"col1": 0, "col2": "unknown"}'>
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <label for="drop_na" class="form-label">
-                                                    Drop NA
-                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Drop rows or columns with missing values."></i>
-                                                </label>
-                                                <select class="form-select" id="drop_na" name="drop_na">
-                                                    <option value="">Don't drop</option>
-                                                    <option value="rows">Drop Rows</option>
-                                                    <option value="columns">Drop Columns</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-4 mb-3">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" id="mfill" name="mfill">
-                                                    <label class="form-check-label" for="mfill">
-                                                        Mean Fill
-                                                        <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Fill missing values with column mean."></i>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4 mb-3">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" id="ffill" name="ffill">
-                                                    <label class="form-check-label" for="ffill">
-                                                        Forward Fill
-                                                        <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Fill missing values with previous value."></i>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4 mb-3">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" id="bfill" name="bfill">
-                                                    <label class="form-check-label" for="bfill">
-                                                        Backward Fill
-                                                        <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Fill missing values with next value."></i>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <h5 class="mt-4">Outliers and Duplicates</h5>
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" id="drop_outliers" name="drop_outliers">
-                                                    <label class="form-check-label" for="drop_outliers">
-                                                        Drop Outliers
-                                                        <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Remove rows with outlier values."></i>
-                                                    </label>
-                                                </div>
-                                                <div class="mt-2">
-                                                    <label for="outliers_threshold" class="form-label">
-                                                        Outliers Threshold
-                                                        <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Z-score threshold for outlier detection."></i>
-                                                    </label>
-                                                    <input type="number" class="form-control" id="outliers_threshold" name="outliers_threshold" min="0.1" step="0.1" value="3.0">
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" id="drop_duplicates" name="drop_duplicates">
-                                                    <label class="form-check-label" for="drop_duplicates">
-                                                        Drop Duplicates
-                                                        <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Remove duplicate rows."></i>
-                                                    </label>
-                                                </div>
-                                                <div class="mt-2">
-                                                    <label for="duplicate_subset" class="form-label">
-                                                        Duplicate Subset
-                                                        <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Columns to consider for duplicate detection. Select '*' for all columns."></i>
-                                                    </label>
-                                                    <select class="form-select column-select" id="duplicate_subset" name="duplicate_subset" multiple>
-                                                        <option value="*">All Columns (*)</option>
-                                                    </select>
-                                                </div>
-                                                <div class="mt-2">
-                                                    <label for="duplicate_keep" class="form-label">
-                                                        Duplicate Keep
-                                                        <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Which duplicate to keep."></i>
-                                                    </label>
-                                                    <select class="form-select" id="duplicate_keep" name="duplicate_keep">
-                                                        <option value="first">First</option>
-                                                        <option value="last">Last</option>
-                                                        <option value="false">None</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <h5 class="mt-4">Column Types</h5>
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label for="datetime_columns" class="form-label">
-                                                    Datetime Columns
-                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Columns to convert to datetime. Select '*' for all columns."></i>
-                                                </label>
-                                                <select class="form-select column-select" id="datetime_columns" name="datetime_columns" multiple>
-                                                    <option value="*">All Columns (*)</option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <label for="category_columns" class="form-label">
-                                                    Category Columns
-                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Columns to convert to category. Select '*' for all columns."></i>
-                                                </label>
-                                                <select class="form-select column-select" id="category_columns" name="category_columns" multiple>
-                                                    <option value="*">All Columns (*)</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <h5 class="mt-4">Category Handling</h5>
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" id="join_small_cat" name="join_small_cat">
-                                                    <label class="form-check-label" for="join_small_cat">
-                                                        Join Small Categories
-                                                        <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Combine small categories into a single category."></i>
-                                                    </label>
-                                                </div>
-                                                <div class="mt-2">
-                                                    <label for="joined_category_name" class="form-label">
-                                                        Joined Category Name
-                                                        <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Name for the combined small categories."></i>
-                                                    </label>
-                                                    <input type="text" class="form-control" id="joined_category_name" name="joined_category_name" value="Other">
-                                                </div>
-                                                <div class="mt-2">
-                                                    <label for="categories_threshold" class="form-label">
-                                                        Categories Threshold
-                                                        <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Percentage threshold for small categories."></i>
-                                                    </label>
-                                                    <input type="number" class="form-control" id="categories_threshold" name="categories_threshold" min="0.1" max="100" step="0.1">
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" id="scale_numeric" name="scale_numeric">
-                                                    <label class="form-check-label" for="scale_numeric">
-                                                        Scale Numeric Columns
-                                                        <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Scale numeric columns to a standard range."></i>
-                                                    </label>
-                                                </div>
-                                                <div class="mt-2">
-                                                    <label for="scaling_method" class="form-label">
-                                                        Scaling Method
-                                                        <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Method to use for scaling numeric columns."></i>
-                                                    </label>
-                                                    <select class="form-select" id="scaling_method" name="scaling_method">
-                                                        <option value="max_abs_scaling">Max Abs Scaling</option>
-                                                        <option value="min_max_scaling">Min-Max Scaling</option>
-                                                        <option value="z_score">Z-Score (Standard Scaling)</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div id="preprocess-error" class="alert alert-danger mt-3 d-none"></div>
-
-                                    <div class="d-grid gap-2 mt-4">
-                                        <button type="button" id="preprocess-btn" class="btn btn-primary">Preprocess Data</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Report Tab -->
-                    <div class="tab-pane fade py-4" id="report">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Generate Report</h5>
-
-                                <p class="card-text">Generate a PDF report with recommendations based on your data analysis.</p>
-
-                                <form id="report-form">
-                                    <!-- Analysis Parameters Section -->
-                                    <div class="mt-4 pt-3 border-top">
-                                        <h5>Analysis Parameters</h5>
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label for="analysis_task" class="form-label">
-                                                    Analysis Task
-                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Type of analysis to perform on the dataset."></i>
-                                                </label>
-                                                <select class="form-select" id="analysis_task" name="analysis_task" required>
-                                                    <option value="regression">Regression</option>
-                                                    <option value="classification">Classification</option>
-                                                    <option value="clusterization">Clusterization</option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <label for="target_col" class="form-label">
-                                                    Target Column
-                                                    <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Column to predict (for regression/classification) or to exclude from clustering."></i>
-                                                </label>
-                                                <select class="form-select" id="target_col" name="target_col">
-                                                    <option value="">Select a column</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div id="report-error" class="alert alert-danger mt-3 d-none"></div>
-                                    <div id="report-success" class="alert alert-success mt-3 d-none">
-                                        Report generated successfully!
-                                    </div>
-
-                                    <div class="d-grid gap-2">
-                                        <button type="button" id="report-btn" class="btn btn-primary">Generate Report</button>
-                                    </div>
-                                </form>
-
-                                <div id="report-result" class="alert alert-success mt-3 d-none">
-                                    <p>Your report has been generated and opened in a new tab.</p>
-                                    <button id="open-report-again" class="btn btn-outline-primary btn-sm">Open Report Again</button>
+                            <form id="download-form">
+                                <!-- Download Format Selection -->
+                                <div class="mb-3">
+                                    <label for="download_format" class="form-label">
+                                        Download Format
+                                        <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" title="Choose the file format for your download."></i>
+                                    </label>
+                                    <select class="form-select" id="download_format" name="format">
+                                        <option value="csv">CSV (Comma Separated Values)</option>
+                                        <option value="excel">Excel (.xlsx)</option>
+                                        <option value="json">JSON (JavaScript Object Notation)</option>
+                                        <option value="pickle">Pickle (Python Binary Format)</option>
+                                    </select>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Download Tab -->
-                    <div class="tab-pane fade py-4" id="download">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Download Dataset</h5>
+                                <div id="download-error" class="alert alert-danger mt-3 d-none"></div>
+                                <div id="download-success" class="alert alert-success mt-3 d-none">
+                                    File downloaded successfully!
+                                </div>
 
-                                <p class="card-text">Download your processed dataset.</p>
-
-                                <form id="download-form">
-                                    <div id="download-error" class="alert alert-danger mt-3 d-none"></div>
-                                    <div id="download-success" class="alert alert-success mt-3 d-none">
-                                        File downloaded successfully!
-                                    </div>
-
-                                    <div class="d-grid gap-2">
-                                        <button type="button" id="download-btn" class="btn btn-primary">Download File</button>
-                                    </div>
-                                </form>
-                            </div>
+                                <div class="d-grid gap-2">
+                                    <button type="button" id="download-btn" class="btn btn-primary">Download File</button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <footer class="pt-3 mt-4 text-muted border-top">
-            <p id="dataset-status">No dataset loaded</p>
-        </footer>
     </div>
 
-    <div id="loading" class="spinner-overlay d-none">
-        <div class="spinner-border text-primary">
-            <span class="visually-hidden">Loading...</span>
-        </div>
+    <footer class="pt-3 mt-4 text-muted border-top">
+        <p id="dataset-status">No dataset loaded</p>
+    </footer>
+</div>
+
+<div id="loading" class="spinner-overlay d-none">
+    <div class="spinner-border text-primary">
+        <span class="visually-hidden">Loading...</span>
     </div>
+</div>
 
-    <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Configure the base URL for API endpoints
-            const API_BASE_URL = (window.location.hostname === 'llo3iTiB4iK.github.io')
-                ? 'https://llo3iTiB4iK.pythonanywhere.com' // prod
-                : 'http://localhost:5000';     // dev
+<!-- Bootstrap Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Configure the base URL for API endpoints
+        const API_BASE_URL = 'https://llo3iTiB4iK.pythonanywhere.com';
 
-            // State variables
-            let currentDatasetId = '';
-            let currentAccessKey = '';
-            let currentMetadata = null;
-            let reportUrl = '';
-            let isLoading = false;
-            let availableColumns = [];
+        // State variables
+        let currentDatasetId = '';
+        let currentAccessKey = '';
+        let currentMetadata = null;
+        let reportUrl = '';
+        let isLoading = false;
+        let availableColumns = [];
 
-            // Dataset version tracking
-            let originalDatasetId = '';
-            let originalAccessKey = '';
-            let processedDatasetId = '';
-            let processedAccessKey = '';
-            let hasProcessedVersion = false;
+        // Dataset version tracking
+        let originalDatasetId = '';
+        let originalAccessKey = '';
+        let processedDatasetId = '';
+        let processedAccessKey = '';
+        let hasProcessedVersion = false;
 
-            // Initialize tooltips
-            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl, {
-                    html: true
+        // Initialize tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl, {
+                html: true
+            });
+        });
+
+        // DOM Elements
+        const tabElements = {
+            upload: new bootstrap.Tab(document.getElementById('upload-tab')),
+            info: new bootstrap.Tab(document.getElementById('info-tab')),
+            preprocess: new bootstrap.Tab(document.getElementById('preprocess-tab')),
+            report: new bootstrap.Tab(document.getElementById('report-tab')),
+            download: new bootstrap.Tab(document.getElementById('download-tab'))
+        };
+
+        const fileInput = document.getElementById('file');
+        const uploadBtn = document.getElementById('upload-btn');
+        const allStagesBtn = document.getElementById('all-stages-btn');
+        const refreshInfoBtn = document.getElementById('refresh-info');
+        const toPreprocessBtn = document.getElementById('to-preprocess');
+        const preprocessBtn = document.getElementById('preprocess-btn');
+        const reportBtn = document.getElementById('report-btn');
+        const openReportAgainBtn = document.getElementById('open-report-again');
+        const downloadBtn = document.getElementById('download-btn');
+        const metadataContainer = document.getElementById('metadata-container');
+        const reportResult = document.getElementById('report-result');
+        const datasetStatus = document.getElementById('dataset-status');
+        const loadingIndicator = document.getElementById('loading');
+        const globalErrorAlert = document.getElementById('error-alert');
+        const globalErrorMessage = document.getElementById('error-message');
+        const downloadSuccess = document.getElementById('download-success');
+        const reportSuccess = document.getElementById('report-success');
+
+        // Manual dataset connection elements
+        const manualDatasetIdInput = document.getElementById('manual-dataset-id');
+        const manualAccessKeyInput = document.getElementById('manual-access-key');
+        const connectDatasetBtn = document.getElementById('connect-dataset-btn');
+
+        // Dataset selector elements
+        const datasetSelector = document.getElementById('dataset-selector');
+        const originalDatasetRadio = document.getElementById('originalDataset');
+        const processedDatasetRadio = document.getElementById('processedDataset');
+
+        // Download format element
+        const downloadFormatSelect = document.getElementById('download_format');
+
+        // Column select elements
+        const columnSelects = [
+            'case_insensitive_columns',
+            'clear_punct_columns',
+            'clear_digits_columns',
+            'index_cols',
+            'duplicate_subset',
+            'datetime_columns',
+            'category_columns',
+            'target_col'
+        ];
+
+        // Error containers
+        const errorContainers = {
+            upload: document.getElementById('upload-error'),
+            info: document.getElementById('info-error'),
+            preprocess: document.getElementById('preprocess-error'),
+            report: document.getElementById('report-error'),
+            download: document.getElementById('download-error')
+        };
+
+        // Helper functions
+        function setLoading(loading) {
+            if (loading) {
+                loadingIndicator.classList.remove('d-none');
+            } else {
+                loadingIndicator.classList.add('d-none');
+            }
+        }
+
+        function updateDatasetStatus() {
+            if (currentDatasetId) {
+                datasetStatus.textContent = `Current Dataset: ${currentDatasetId}`;
+            } else {
+                datasetStatus.textContent = 'No dataset loaded';
+            }
+        }
+
+        function switchToTab(tabName) {
+            tabElements[tabName].show();
+        }
+
+        function displayMetadata() {
+            if (!currentMetadata) return;
+
+            metadataContainer.innerHTML = `
+                <div class="mb-3">
+                    <p><strong>Dataset ID:</strong> ${currentDatasetId}</p>
+                    <p><strong>Access Key:</strong> ${currentAccessKey}</p>
+                    <p><strong>Rows:</strong> ${currentMetadata.num_rows}</p>
+                    <p><strong>Columns:</strong> ${currentMetadata.num_columns}</p>
+                </div>
+                <div class="mb-3">
+                    <h6>Column Types:</h6>
+                    <pre class="bg-light p-3 rounded">${JSON.stringify(currentMetadata.columns, null, 2)}</pre>
+                </div>
+            `;
+
+            // Update available columns
+            availableColumns = Object.keys(currentMetadata.columns || {});
+            updateColumnSelects();
+        }
+
+        function updateColumnSelects() {
+            columnSelects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (!select) return;
+
+                // Save current selection
+                const currentSelection = Array.from(select.selectedOptions).map(option => option.value);
+
+                // Clear options except the "All Columns" option
+                const allOption = select.querySelector('option[value="*"]');
+                select.innerHTML = '';
+
+                // Add back the "All Columns" option if it existed
+                if (allOption && selectId !== 'target_col') {
+                    select.appendChild(allOption);
+                }
+
+                // Add column options
+                availableColumns.forEach(column => {
+                    const option = document.createElement('option');
+                    option.value = column;
+                    option.textContent = column;
+
+                    // Check if this option was previously selected
+                    if (currentSelection.includes(column)) {
+                        option.selected = true;
+                    }
+
+                    select.appendChild(option);
                 });
             });
+        }
 
-            // DOM Elements
-            const tabElements = {
-                upload: new bootstrap.Tab(document.getElementById('upload-tab')),
-                info: new bootstrap.Tab(document.getElementById('info-tab')),
-                preprocess: new bootstrap.Tab(document.getElementById('preprocess-tab')),
-                report: new bootstrap.Tab(document.getElementById('report-tab')),
-                download: new bootstrap.Tab(document.getElementById('download-tab'))
-            };
+        // Create a clean FormData object with only non-empty values
+        function getCleanFormData(formId) {
+            const form = document.getElementById(formId);
+            const formData = new FormData();
 
-            const fileInput = document.getElementById('file');
-            const uploadBtn = document.getElementById('upload-btn');
-            const allStagesBtn = document.getElementById('all-stages-btn');
-            const refreshInfoBtn = document.getElementById('refresh-info');
-            const toPreprocessBtn = document.getElementById('to-preprocess');
-            const preprocessBtn = document.getElementById('preprocess-btn');
-            const reportBtn = document.getElementById('report-btn');
-            const openReportAgainBtn = document.getElementById('open-report-again');
-            const downloadBtn = document.getElementById('download-btn');
-            const metadataContainer = document.getElementById('metadata-container');
-            const reportResult = document.getElementById('report-result');
-            const datasetStatus = document.getElementById('dataset-status');
-            const loadingIndicator = document.getElementById('loading');
-            const globalErrorAlert = document.getElementById('error-alert');
-            const globalErrorMessage = document.getElementById('error-message');
-            const downloadSuccess = document.getElementById('download-success');
-            const reportSuccess = document.getElementById('report-success');
-
-            // Dataset selector elements
-            const datasetSelector = document.getElementById('dataset-selector');
-            const originalDatasetRadio = document.getElementById('originalDataset');
-            const processedDatasetRadio = document.getElementById('processedDataset');
-
-            // Column select elements
-            const columnSelects = [
-                'case_insensitive_columns',
-                'clear_punct_columns',
-                'clear_digits_columns',
-                'index_cols',
-                'duplicate_subset',
-                'datetime_columns',
-                'category_columns',
-                'target_col'
-            ];
-
-            // Error containers
-            const errorContainers = {
-                upload: document.getElementById('upload-error'),
-                info: document.getElementById('info-error'),
-                preprocess: document.getElementById('preprocess-error'),
-                report: document.getElementById('report-error'),
-                download: document.getElementById('download-error')
-            };
-
-            // Helper functions
-            function setLoading(loading) {
-                if (loading) {
-                    loadingIndicator.classList.remove('d-none');
-                } else {
-                    loadingIndicator.classList.add('d-none');
+            // Add file if present
+            if (form.querySelector('input[type="file"]')) {
+                const fileInput = form.querySelector('input[type="file"]');
+                if (fileInput.files.length > 0) {
+                    formData.append(fileInput.name, fileInput.files[0]);
                 }
             }
 
-            function updateDatasetStatus() {
-                if (currentDatasetId) {
-                    datasetStatus.textContent = `Current Dataset: ${currentDatasetId}`;
-                } else {
-                    datasetStatus.textContent = 'No dataset loaded';
+            // Process all other form elements
+            const elements = form.elements;
+            for (let element of elements) {
+                // Skip file inputs (already handled), buttons, and elements without a name
+                if (element.type === 'file' || element.type === 'button' ||
+                    element.type === 'submit' || !element.name) {
+                    continue;
+                }
+
+                // Handle checkboxes
+                if (element.type === 'checkbox') {
+                    formData.append(element.name, element.checked ? 'true' : 'false');
+                    continue;
+                }
+
+                // Handle multi-selects
+                if (element.multiple && element.tagName === 'SELECT') {
+                    const selectedValues = Array.from(element.selectedOptions).map(option => option.value);
+
+                    // If "*" is selected, use that
+                    if (selectedValues.includes('*')) {
+                        formData.append(element.name, '*');
+                    } else if (selectedValues.length > 0) {
+                        // Convert to JSON array string
+                        formData.append(element.name, JSON.stringify(selectedValues));
+                    }
+                    continue;
+                }
+
+                // Handle regular inputs and selects
+                if (element.value && element.value.trim() !== '') {
+                    formData.append(element.name, element.value);
                 }
             }
 
-            function switchToTab(tabName) {
-                tabElements[tabName].show();
+            return formData;
+        }
+
+        // Modified function to handle text inputs for column operations in all stages
+        function getCleanFormDataForAllStages(formId) {
+            const form = document.getElementById(formId);
+            const formData = new FormData();
+
+            // Add file if present
+            if (form.querySelector('input[type="file"]')) {
+                const fileInput = form.querySelector('input[type="file"]');
+                if (fileInput.files.length > 0) {
+                    formData.append(fileInput.name, fileInput.files[0]);
+                }
             }
 
-            function displayMetadata() {
-                if (!currentMetadata) return;
-
-                metadataContainer.innerHTML = `
-                    <div class="mb-3">
-                        <p><strong>Dataset ID:</strong> ${currentDatasetId}</p>
-                        <p><strong>Rows:</strong> ${currentMetadata.num_rows}</p>
-                        <p><strong>Columns:</strong> ${currentMetadata.num_columns}</p>
-                    </div>
-                    <div class="mb-3">
-                        <h6>Column Types:</h6>
-                        <pre class="bg-light p-3 rounded">${JSON.stringify(currentMetadata.columns, null, 2)}</pre>
-                    </div>
-                `;
-
-                // Update available columns
-                availableColumns = Object.keys(currentMetadata.columns || {});
-                updateColumnSelects();
-            }
-
-            function updateColumnSelects() {
-                columnSelects.forEach(selectId => {
-                    const select = document.getElementById(selectId);
-                    if (!select) return;
-
-                    // Save current selection
-                    const currentSelection = Array.from(select.selectedOptions).map(option => option.value);
-
-                    // Clear options except the "All Columns" option
-                    const allOption = select.querySelector('option[value="*"]');
-                    select.innerHTML = '';
-
-                    // Add back the "All Columns" option if it existed
-                    if (allOption && selectId !== 'target_col') {
-                        select.appendChild(allOption);
-                    }
-
-                    // Add column options
-                    availableColumns.forEach(column => {
-                        const option = document.createElement('option');
-                        option.value = column;
-                        option.textContent = column;
-
-                        // Check if this option was previously selected
-                        if (currentSelection.includes(column)) {
-                            option.selected = true;
-                        }
-
-                        select.appendChild(option);
-                    });
-                });
-            }
-
-            // Create a clean FormData object with only non-empty values
-            function getCleanFormData(formId) {
-                const form = document.getElementById(formId);
-                const formData = new FormData();
-
-                // Add file if present
-                if (form.querySelector('input[type="file"]')) {
-                    const fileInput = form.querySelector('input[type="file"]');
-                    if (fileInput.files.length > 0) {
-                        formData.append(fileInput.name, fileInput.files[0]);
-                    }
+            // Process all other form elements
+            const elements = form.elements;
+            for (let element of elements) {
+                // Skip file inputs (already handled), buttons, and elements without a name
+                if (element.type === 'file' || element.type === 'button' ||
+                    element.type === 'submit' || !element.name || element.id === 'all_stages') {
+                    continue;
                 }
 
-                // Process all other form elements
-                const elements = form.elements;
-                for (let element of elements) {
-                    // Skip file inputs (already handled), buttons, and elements without a name
-                    if (element.type === 'file' || element.type === 'button' ||
-                        element.type === 'submit' || !element.name) {
-                        continue;
+                // Handle checkboxes
+                if (element.type === 'checkbox') {
+                    formData.append(element.name, element.checked);
+                    continue;
+                }
+
+                // Handle multi-selects (only for non-all-stages elements)
+                if (element.multiple && element.tagName === 'SELECT') {
+                    const selectedValues = Array.from(element.selectedOptions).map(option => option.value);
+
+                    // If "*" is selected, use that
+                    if (selectedValues.includes('*')) {
+                        formData.append(element.name, '*');
+                    } else if (selectedValues.length > 0) {
+                        // Convert to JSON array string
+                        formData.append(element.name, JSON.stringify(selectedValues));
                     }
+                    continue;
+                }
 
-                    // Handle checkboxes
-                    if (element.type === 'checkbox') {
-                        formData.append(element.name, element.checked ? 'true' : 'false');
-                        continue;
-                    }
-
-                    // Handle multi-selects
-                    if (element.multiple && element.tagName === 'SELECT') {
-                        const selectedValues = Array.from(element.selectedOptions).map(option => option.value);
-
-                        // If "*" is selected, use that
-                        if (selectedValues.includes('*')) {
-                            formData.append(element.name, '*');
-                        } else if (selectedValues.length > 0) {
-                            // Convert to JSON array string
-                            formData.append(element.name, JSON.stringify(selectedValues));
-                        }
-                        continue;
-                    }
-
-                    // Handle regular inputs and selects
+                // Handle text inputs for column operations in all stages
+                if (element.type === 'text' && element.id.startsWith('as_') &&
+                    (element.name.includes('columns') || element.name.includes('subset') || element.name === 'target_col')) {
                     if (element.value && element.value.trim() !== '') {
-                        formData.append(element.name, element.value);
-                    }
-                }
-
-                return formData;
-            }
-
-            // Error handling functions
-            function showError(section, message) {
-                // Hide any existing errors
-                hideAllErrors();
-
-                if (section === 'global') {
-                    globalErrorMessage.textContent = message;
-                    globalErrorAlert.classList.remove('d-none');
-                } else if (errorContainers[section]) {
-                    errorContainers[section].textContent = message;
-                    errorContainers[section].classList.remove('d-none');
-
-                    // If it's an input error, mark the input as invalid
-                    if (section === 'upload' && fileInput) {
-                        fileInput.classList.add('is-invalid');
-                    }
-                }
-            }
-
-            function hideAllErrors() {
-                globalErrorAlert.classList.add('d-none');
-                downloadSuccess.classList.add('d-none');
-                reportSuccess.classList.add('d-none');
-
-                for (const section in errorContainers) {
-                    if (errorContainers[section]) {
-                        errorContainers[section].classList.add('d-none');
-                    }
-                }
-
-                // Remove invalid class from inputs
-                fileInput.classList.remove('is-invalid');
-            }
-
-            // Process API response for errors
-            async function handleApiResponse(response, section) {
-                if (!response.ok) {
-                    let errorMessage = `Error: ${response.status} ${response.statusText}`;
-
-                    // Check content type to determine how to handle the error
-                    const contentType = response.headers.get('content-type');
-
-                    if (contentType && contentType.includes('application/json')) {
-                        // Try to parse error as JSON
-                        try {
-                            const errorData = await response.json();
-                            if (errorData.error) {
-                                errorMessage = errorData.error;
-                            } else if (errorData.message) {
-                                errorMessage = errorData.message;
-                            } else if (errorData.detail) {
-                                errorMessage = errorData.detail;
+                        const value = element.value.trim();
+                        // If it's "*", send as is, otherwise convert comma-separated to array
+                        if (value === '*') {
+                            formData.append(element.name, '*');
+                        } else if (element.name === 'target_col') {
+                            // Target column should be a single value
+                            formData.append(element.name, value);
+                        } else {
+                            // Convert comma-separated to array
+                            const columns = value.split(',').map(col => col.trim()).filter(col => col);
+                            if (columns.length > 0) {
+                                formData.append(element.name, JSON.stringify(columns));
                             }
+                        }
+                    }
+                    continue;
+                }
+
+                // Handle regular inputs and selects
+                if (element.value && element.value.trim() !== '') {
+                    formData.append(element.name, element.value);
+                }
+            }
+
+            return formData;
+        }
+
+        // Create JSON object for preprocessing
+        function getPreprocessingData(formId) {
+            const form = document.getElementById(formId);
+            const data = {};
+
+            const elements = form.elements;
+            for (let element of elements) {
+                // Skip buttons and elements without a name
+                if (element.type === 'button' || element.type === 'submit' || !element.name) {
+                    continue;
+                }
+
+                // Handle checkboxes
+                if (element.type === 'checkbox') {
+                    data[element.name] = element.checked;
+                    continue;
+                }
+
+                // Handle multi-selects
+                if (element.multiple && element.tagName === 'SELECT') {
+                    const selectedValues = Array.from(element.selectedOptions).map(option => option.value);
+
+                    // If "*" is selected, use that
+                    if (selectedValues.includes('*')) {
+                        data[element.name] = '*';
+                    } else if (selectedValues.length > 0) {
+                        data[element.name] = selectedValues;
+                    }
+                    continue;
+                }
+
+                // Handle regular inputs and selects
+                if (element.value && element.value.trim() !== '') {
+                    let value = element.value.trim();
+
+                    // Convert numeric inputs
+                    if (element.type === 'number') {
+                        value = parseFloat(value);
+                    }
+
+                    // Handle JSON inputs
+                    if (element.name === 'fill_na_values' && value) {
+                        try {
+                            value = JSON.parse(value);
                         } catch (e) {
-                            console.error('Error parsing JSON error response:', e);
-                        }
-                    } else {
-                        // If not JSON, try to get text
-                        try {
-                            const errorText = await response.text();
-                            if (errorText) {
-                                errorMessage = errorText;
-                            }
-                        } catch (textError) {
-                            console.error('Error parsing error response text:', textError);
+                            // Keep as string if not valid JSON
                         }
                     }
 
-                    showError(section, errorMessage);
-                    throw new Error(errorMessage);
+                    data[element.name] = value;
                 }
+            }
 
-                // Check if response is JSON before trying to parse it
+            return data;
+        }
+
+        // Error handling functions
+        function showError(section, message) {
+            // Hide any existing errors
+            hideAllErrors();
+
+            if (section === 'global') {
+                globalErrorMessage.textContent = message;
+                globalErrorAlert.classList.remove('d-none');
+            } else if (errorContainers[section]) {
+                errorContainers[section].textContent = message;
+                errorContainers[section].classList.remove('d-none');
+
+                // If it's an input error, mark the input as invalid
+                if (section === 'upload' && fileInput) {
+                    fileInput.classList.add('is-invalid');
+                }
+            }
+        }
+
+        function hideAllErrors() {
+            globalErrorAlert.classList.add('d-none');
+            downloadSuccess.classList.add('d-none');
+            reportSuccess.classList.add('d-none');
+
+            for (const section in errorContainers) {
+                if (errorContainers[section]) {
+                    errorContainers[section].classList.add('d-none');
+                }
+            }
+
+            // Remove invalid class from inputs
+            fileInput.classList.remove('is-invalid');
+        }
+
+        // Process API response for errors
+        async function handleApiResponse(response, section) {
+            if (!response.ok) {
+                let errorMessage = `Error: ${response.status} ${response.statusText}`;
+
+                // Check content type to determine how to handle the error
                 const contentType = response.headers.get('content-type');
+
                 if (contentType && contentType.includes('application/json')) {
-                    return response.json();
-                }
-
-                // For non-JSON responses (like file downloads), return the response itself
-                return response;
-            }
-
-            // Add headers to fetch requests
-            function createHeaders() {
-                const headers = new Headers();
-
-                // Add access key to all requests if available
-                if (currentAccessKey) {
-                    headers.append('X-Dataset-Token', currentAccessKey);
-                }
-
-                return headers;
-            }
-
-            // Function to switch between datasets
-            function switchDataset(useProcessed) {
-                if (useProcessed && hasProcessedVersion) {
-                    currentDatasetId = processedDatasetId;
-                    currentAccessKey = processedAccessKey;
-                    processedDatasetRadio.checked = true;
+                    // Try to parse error as JSON
+                    try {
+                        const errorData = await response.json();
+                        if (errorData.error) {
+                            errorMessage = errorData.error;
+                        } else if (errorData.message) {
+                            errorMessage = errorData.message;
+                        } else if (errorData.detail) {
+                            errorMessage = errorData.detail;
+                        }
+                    } catch (e) {
+                        console.error('Error parsing JSON error response:', e);
+                    }
                 } else {
-                    currentDatasetId = originalDatasetId;
-                    currentAccessKey = originalAccessKey;
-                    originalDatasetRadio.checked = true;
+                    // If not JSON, try to get text
+                    try {
+                        const errorText = await response.text();
+                        if (errorText) {
+                            errorMessage = errorText;
+                        }
+                    } catch (textError) {
+                        console.error('Error parsing error response text:', textError);
+                    }
                 }
+
+                showError(section, errorMessage);
+                throw new Error(errorMessage);
+            }
+
+            // Check if response is JSON before trying to parse it
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return response.json();
+            }
+
+            // For non-JSON responses (like file downloads), return the response itself
+            return response;
+        }
+
+        // Add headers to fetch requests
+        function createHeaders() {
+            const headers = new Headers();
+
+            // Add access key to all requests if available
+            if (currentAccessKey) {
+                headers.append('X-Dataset-Token', currentAccessKey);
+            }
+
+            return headers;
+        }
+
+        // Function to switch between datasets
+        function switchDataset(useProcessed) {
+            if (useProcessed && hasProcessedVersion) {
+                currentDatasetId = processedDatasetId;
+                currentAccessKey = processedAccessKey;
+                processedDatasetRadio.checked = true;
+            } else {
+                currentDatasetId = originalDatasetId;
+                currentAccessKey = originalAccessKey;
+                originalDatasetRadio.checked = true;
+            }
+
+            // Update UI
+            updateDatasetStatus();
+
+            // Refresh metadata for the selected dataset
+            refreshDatasetInfo();
+        }
+
+        // Function to refresh dataset info
+        async function refreshDatasetInfo() {
+            if (!currentDatasetId) {
+                showError('info', 'No dataset loaded');
+                return;
+            }
+
+            hideAllErrors();
+            setLoading(true);
+            try {
+                const headers = createHeaders();
+
+                const response = await fetch(`${API_BASE_URL}/datasets/${currentDatasetId}`, {
+                    headers: headers
+                });
+
+                const data = await handleApiResponse(response, 'info');
+                currentMetadata = data.metadata;
+                displayMetadata();
+            } catch (error) {
+                console.error('Error getting dataset info:', error);
+                // Error is already displayed by handleApiResponse
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Check if dataset is loaded
+        function checkDatasetLoaded(section) {
+            if (!currentDatasetId) {
+                showError(section, 'No dataset loaded. Please upload a dataset first.');
+                return false;
+            }
+            return true;
+        }
+
+        // Get file extension based on format
+        function getFileExtension(format) {
+            switch (format) {
+                case 'csv':
+                    return 'csv';
+                case 'excel':
+                    return 'xlsx';
+                case 'json':
+                    return 'json';
+                case 'pickle':
+                    return 'pkl';
+                default:
+                    return 'csv';
+            }
+        }
+
+        // Connect to existing dataset
+        connectDatasetBtn.addEventListener('click', async () => {
+            const datasetId = manualDatasetIdInput.value.trim();
+            const accessKey = manualAccessKeyInput.value.trim();
+
+            if (!datasetId) {
+                showError('global', 'Please enter a dataset ID');
+                return;
+            }
+
+            if (!accessKey) {
+                showError('global', 'Please enter an access key');
+                return;
+            }
+
+            hideAllErrors();
+            setLoading(true);
+
+            try {
+                // Set the dataset ID and access key
+                currentDatasetId = datasetId;
+                currentAccessKey = accessKey;
+
+                // Store as original dataset
+                originalDatasetId = datasetId;
+                originalAccessKey = accessKey;
+
+                // Reset processed dataset
+                processedDatasetId = '';
+                processedAccessKey = '';
+                hasProcessedVersion = false;
+
+                // Hide dataset selector
+                datasetSelector.classList.add('d-none');
 
                 // Update UI
                 updateDatasetStatus();
 
-                // Refresh metadata for the selected dataset
-                refreshDatasetInfo();
+                // Fetch dataset info to verify the connection
+                await refreshDatasetInfo();
+
+                // Switch to info tab
+                switchToTab('info');
+
+                // Show success message
+                showError('global', `Successfully connected to dataset ${datasetId}`);
+                setTimeout(() => {
+                    hideAllErrors();
+                }, 3000);
+            } catch (error) {
+                console.error('Error connecting to dataset:', error);
+                currentDatasetId = '';
+                currentAccessKey = '';
+                originalDatasetId = '';
+                originalAccessKey = '';
+                updateDatasetStatus();
+                showError('global', `Failed to connect to dataset: ${error.message}`);
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        // Add after the DOM elements section
+        const allStagesCheckbox = document.getElementById('all_stages');
+        const allStagesPreprocessing = document.getElementById('all-stages-preprocessing');
+        const allStagesAnalysis = document.getElementById('all-stages-analysis');
+        const uploadBtnText = document.getElementById('upload-btn-text');
+
+        // Add event listener for all stages checkbox
+        allStagesCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                allStagesPreprocessing.classList.remove('d-none');
+                allStagesAnalysis.classList.remove('d-none');
+                uploadBtnText.textContent = 'Upload & Analyze';
+            } else {
+                allStagesPreprocessing.classList.add('d-none');
+                allStagesAnalysis.classList.add('d-none');
+                uploadBtnText.textContent = 'Upload File';
+            }
+        });
+
+        // Modify the uploadBtn event listener to handle both regular upload and full pipeline
+        uploadBtn.addEventListener('click', async () => {
+            const file = fileInput.files[0];
+            if (!file) {
+                showError('upload', 'Please select a file to upload');
+                return;
             }
 
-            // Function to refresh dataset info
-            async function refreshDatasetInfo() {
-                if (!currentDatasetId) {
-                    showError('info', 'No dataset loaded');
-                    return;
+            hideAllErrors();
+
+            // Check if all stages is selected
+            if (allStagesCheckbox.checked) {
+                // Run full pipeline - open in new tab
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `${API_BASE_URL}/datasets/full_pipeline`;
+                form.enctype = 'multipart/form-data';
+                form.target = '_blank';
+
+                // Add file input
+                const fileField = document.createElement('input');
+                fileField.type = 'file';
+                fileField.name = 'file';
+                fileField.style.display = 'none';
+
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                fileField.files = dataTransfer.files;
+                form.appendChild(fileField);
+
+                // Get all form data from upload form using the modified function
+                const formData = getCleanFormDataForAllStages('upload-form');
+
+                // Convert FormData to form inputs
+                for (let [key, value] of formData.entries()) {
+                    if (key !== 'file') { // Skip file as it's already added
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = value;
+                        form.appendChild(input);
+                    }
                 }
 
-                hideAllErrors();
-                setLoading(true);
-                try {
-                    const headers = createHeaders();
-
-                    const response = await fetch(`${API_BASE_URL}/dataset_info/${currentDatasetId}`, {
-                        headers: headers
-                    });
-
-                    const data = await handleApiResponse(response, 'info');
-                    currentMetadata = data.metadata;
-                    displayMetadata();
-                } catch (error) {
-                    console.error('Error getting dataset info:', error);
-                    // Error is already displayed by handleApiResponse
-                } finally {
-                    setLoading(false);
-                }
-            }
-
-            // Check if dataset is loaded
-            function checkDatasetLoaded(section) {
-                if (!currentDatasetId) {
-                    showError(section, 'No dataset loaded. Please upload a dataset first.');
-                    return false;
-                }
-                return true;
-            }
-
-            // Event handlers
-            uploadBtn.addEventListener('click', async () => {
-                const file = fileInput.files[0];
-                if (!file) {
-                    showError('upload', 'Please select a file to upload');
-                    return;
-                }
-
-                hideAllErrors();
+                document.body.appendChild(form);
+                form.submit();
+                document.body.removeChild(form);
+            } else {
+                // Regular upload
                 setLoading(true);
                 try {
                     const formData = getCleanFormData('upload-form');
 
-                    const response = await fetch(`${API_BASE_URL}/upload`, {
+                    const response = await fetch(`${API_BASE_URL}/datasets`, {
                         method: 'POST',
                         body: formData
                     });
@@ -934,299 +1486,246 @@
                 } finally {
                     setLoading(false);
                 }
-            });
-
-            allStagesBtn.addEventListener('click', () => {
-                const file = fileInput.files[0];
-                if (!file) {
-                    showError('upload', 'Please select a file to upload');
-                    return;
-                }
-
-                hideAllErrors();
-
-                // Create a form and submit it to open in a new tab
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = `${API_BASE_URL}/all_stages`;
-                form.enctype = 'multipart/form-data';
-                form.target = '_blank';
-
-                // Add file input
-                const fileField = document.createElement('input');
-                fileField.type = 'file';
-                fileField.name = 'file';
-                fileField.style.display = 'none';
-
-                // Create a new FileList object
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(file);
-                fileField.files = dataTransfer.files;
-                form.appendChild(fileField);
-
-                // Add other form parameters (only non-empty ones)
-                const uploadForm = document.getElementById('upload-form');
-                const elements = uploadForm.elements;
-
-                for (let element of elements) {
-                    // Skip file inputs (already handled), buttons, and elements without a name
-                    if (element.type === 'file' || element.type === 'button' ||
-                        element.type === 'submit' || !element.name) {
-                        continue;
-                    }
-
-                    // Only add non-empty values
-                    if (element.value && element.value.trim() !== '') {
-                        const input = document.createElement('input');
-                        input.type = 'hidden';
-                        input.name = element.name;
-                        input.value = element.value;
-                        form.appendChild(input);
-                    }
-                }
-
-                // Add loading parameters as JSON string if any advanced options are set
-                const loadingParams = {};
-                const advancedFields = ['delimiter', 'encoding', 'sep', 'thousands', 'decimal',
-                                       'sheet_name', 'table_name'];
-
-                // Check if any advanced fields have values
-                let hasAdvancedParams = false;
-                advancedFields.forEach(field => {
-                    const element = document.getElementById(field);
-                    if (element && element.value && element.value.trim() !== '') {
-                        loadingParams[field] = element.value.trim();
-                        hasAdvancedParams = true;
-                    }
-                });
-
-                // Only add loading_params if there are any
-                if (hasAdvancedParams) {
-                    const loadingParamsInput = document.createElement('input');
-                    loadingParamsInput.type = 'hidden';
-                    loadingParamsInput.name = 'loading_params';
-                    loadingParamsInput.value = JSON.stringify(loadingParams);
-                    form.appendChild(loadingParamsInput);
-                }
-
-                // Add access key if available
-                if (currentAccessKey) {
-                    const accessKeyInput = document.createElement('input');
-                    accessKeyInput.type = 'hidden';
-                    accessKeyInput.name = 'access_key';
-                    accessKeyInput.value = currentAccessKey;
-                    form.appendChild(accessKeyInput);
-                }
-
-                document.body.appendChild(form);
-                form.submit();
-                document.body.removeChild(form);
-            });
-
-            refreshInfoBtn.addEventListener('click', async () => {
-                if (!checkDatasetLoaded('info')) return;
-                refreshDatasetInfo();
-            });
-
-            toPreprocessBtn.addEventListener('click', () => {
-                hideAllErrors();
-                switchToTab('preprocess');
-            });
-
-            preprocessBtn.addEventListener('click', async () => {
-                if (!checkDatasetLoaded('preprocess')) return;
-
-                hideAllErrors();
-                setLoading(true);
-                try {
-                    const headers = createHeaders();
-                    const requestBody = getCleanFormData('preprocess-form');
-
-                    const response = await fetch(`${API_BASE_URL}/preprocess/${currentDatasetId}`, {
-                        method: 'POST',
-                        headers: headers,
-                        body: requestBody
-                    });
-
-                    const data = await handleApiResponse(response, 'preprocess');
-
-                    // If a copy was made, store the new dataset ID
-                    if (data.new_dataset_id) {
-                        processedDatasetId = data.new_dataset_id;
-                        processedAccessKey = data.new_dataset_access_key;
-                        hasProcessedVersion = true;
-
-                        // Show dataset selector
-                        datasetSelector.classList.remove('d-none');
-
-                        // Switch to the processed dataset
-                        switchDataset(true);
-                    } else {
-                        // Update current dataset metadata
-                        currentMetadata = data.metadata;
-                        displayMetadata();
-                    }
-
-                    // Switch to report tab
-                    switchToTab('report');
-                } catch (error) {
-                    console.error('Error preprocessing dataset:', error);
-                    // Error is already displayed by handleApiResponse
-                } finally {
-                    setLoading(false);
-                }
-            });
-
-            reportBtn.addEventListener('click', async () => {
-                if (!checkDatasetLoaded('report')) return;
-
-                hideAllErrors();
-                setLoading(true);
-                try {
-                    const headers = createHeaders();
-
-                    // Get analysis task and target column
-                    const analysisTask = document.getElementById('analysis_task').value;
-                    const targetCol = document.getElementById('target_col').value;
-
-                    // Build the URL with query parameters
-                    let reportEndpoint = `${API_BASE_URL}/recommendations/${currentDatasetId}?analysis_task=${analysisTask}`;
-                    if (targetCol) {
-                        reportEndpoint += `&target_col=${targetCol}`;
-                    }
-
-                    // Use fetch with authentication header to get the report
-                    const response = await fetch(reportEndpoint, {
-                        method: 'GET',
-                        headers: headers
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    // Get the blob from the response
-                    const blob = await response.blob();
-
-                    // Create a URL for the blob
-                    const url = window.URL.createObjectURL(blob);
-
-                    // Open the report in a new tab
-                    window.open(url, '_blank');
-
-                    // Store the URL for later use
-                    reportUrl = url;
-
-                    // Show success message
-                    reportResult.classList.remove('d-none');
-                    reportSuccess.classList.remove('d-none');
-                } catch (error) {
-                    console.error('Error generating report:', error);
-                    showError('report', error.message || 'An error occurred while generating the report');
-                } finally {
-                    setLoading(false);
-                }
-            });
-
-            openReportAgainBtn.addEventListener('click', () => {
-                if (reportUrl) {
-                    window.open(reportUrl, '_blank');
-                } else {
-                    showError('report', 'No report URL available');
-                }
-            });
-
-            downloadBtn.addEventListener('click', async () => {
-                if (!checkDatasetLoaded('download')) return;
-
-                hideAllErrors();
-                setLoading(true);
-
-                try {
-                    const params = new URLSearchParams();
-
-                    // Add include_index parameter
-                    const includeIndex = document.getElementById('include_index');
-                    if (includeIndex) {
-                        params.append('include_index', includeIndex.checked ? 'true' : 'false');
-                    }
-
-                    const downloadEndpoint = `${API_BASE_URL}/download/${currentDatasetId}?${params.toString()}`;
-
-                    const headers = createHeaders();
-                    const response = await fetch(downloadEndpoint, {
-                        headers: headers
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    // Get the blob from the response
-                    const blob = await response.blob();
-
-                    // Create a URL for the blob
-                    const url = window.URL.createObjectURL(blob);
-
-                    // Create a temporary link and trigger download
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = `dataset_${currentDatasetId}.csv`;
-                    document.body.appendChild(a);
-                    a.click();
-
-                    // Clean up
-                    setTimeout(() => {
-                        document.body.removeChild(a);
-                        window.URL.revokeObjectURL(url);
-                    }, 100);
-
-                    // Show success message
-                    downloadSuccess.classList.remove('d-none');
-                } catch (error) {
-                    console.error('Error downloading dataset:', error);
-                    showError('download', error.message || 'An error occurred while downloading');
-                } finally {
-                    setLoading(false);
-                }
-            });
-
-            // Dataset selector event handlers
-            originalDatasetRadio.addEventListener('change', function() {
-                if (this.checked) {
-                    switchDataset(false);
-                }
-            });
-
-            processedDatasetRadio.addEventListener('change', function() {
-                if (this.checked) {
-                    switchDataset(true);
-                }
-            });
-
-            // Tab click handlers to check for dataset
-            document.querySelectorAll('.nav-link').forEach(tab => {
-                tab.addEventListener('click', function() {
-                    // Check if we need to show an error for this tab
-                    const tabId = this.id;
-                    const section = tabId.replace('-tab', '');
-
-                    // Clear any existing errors when switching tabs
-                    hideAllErrors();
-
-                    // Check if dataset is needed for this tab
-                    if (section !== 'upload' && !currentDatasetId) {
-                        setTimeout(() => {
-                            showError(section, 'No dataset loaded. Please upload a dataset first.');
-                        }, 100);
-                    }
-                });
-            });
-
-            // Initial state
-            updateDatasetStatus();
+            }
         });
-    </script>
+
+        // Remove the old allStagesBtn event listener and hide the button
+        allStagesBtn.classList.add('d-none');
+
+        refreshInfoBtn.addEventListener('click', async () => {
+            if (!checkDatasetLoaded('info')) return;
+            refreshDatasetInfo();
+        });
+
+        toPreprocessBtn.addEventListener('click', () => {
+            hideAllErrors();
+            switchToTab('preprocess');
+        });
+
+        preprocessBtn.addEventListener('click', async () => {
+            if (!checkDatasetLoaded('preprocess')) return;
+
+            hideAllErrors();
+            setLoading(true);
+            try {
+                const headers = createHeaders();
+                headers.append('Content-Type', 'application/json');
+
+                const requestData = getPreprocessingData('preprocess-form');
+
+                const response = await fetch(`${API_BASE_URL}/datasets/${currentDatasetId}/preprocess`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(requestData)
+                });
+
+                const data = await handleApiResponse(response, 'preprocess');
+
+                // If a copy was made, store the new dataset ID
+                if (data.new_dataset_id) {
+                    processedDatasetId = data.new_dataset_id;
+                    processedAccessKey = data.new_dataset_access_key;
+                    hasProcessedVersion = true;
+
+                    // Show dataset selector
+                    datasetSelector.classList.remove('d-none');
+
+                    // Switch to the processed dataset
+                    switchDataset(true);
+                } else {
+                    // Update current dataset metadata
+                    currentMetadata = data.metadata;
+                    displayMetadata();
+                }
+
+                // Switch to report tab
+                switchToTab('report');
+            } catch (error) {
+                console.error('Error preprocessing dataset:', error);
+                // Error is already displayed by handleApiResponse
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        reportBtn.addEventListener('click', async () => {
+            if (!checkDatasetLoaded('report')) return;
+
+            hideAllErrors();
+            setLoading(true);
+            try {
+                const headers = createHeaders();
+
+                // Get report parameters
+                const analysisTask = document.getElementById('analysis_task').value;
+                const targetCol = document.getElementById('target_col').value;
+                const includeBasicStats = document.getElementById('include_basic_stats').checked;
+                const includeVisualizations = document.getElementById('include_visualizations').checked;
+                const dpi = document.getElementById('dpi').value;
+                const theme = document.getElementById('theme').value;
+                const showTime = document.getElementById('show_time').checked;
+
+                // Build the URL with query parameters
+                const params = new URLSearchParams();
+                params.append('analysis_task', analysisTask);
+                if (targetCol) {
+                    params.append('target_col', targetCol);
+                }
+                params.append('include_basic_stats', includeBasicStats);
+                params.append('include_visualizations', includeVisualizations);
+                params.append('dpi', dpi);
+                params.append('theme', theme);
+                params.append('show_time', showTime);
+
+                const reportEndpoint = `${API_BASE_URL}/datasets/${currentDatasetId}/report?${params.toString()}`;
+
+                // Use fetch with authentication header to get the report
+                const response = await fetch(reportEndpoint, {
+                    method: 'GET',
+                    headers: headers
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                // Get the blob from the response
+                const blob = await response.blob();
+
+                // Create a URL for the blob
+                const url = window.URL.createObjectURL(blob);
+
+                // Open the report in a new tab
+                window.open(url, '_blank');
+
+                // Store the URL for later use
+                reportUrl = url;
+
+                // Show success message
+                reportResult.classList.remove('d-none');
+                reportSuccess.classList.remove('d-none');
+            } catch (error) {
+                console.error('Error generating report:', error);
+                showError('report', error.message || 'An error occurred while generating the report');
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        openReportAgainBtn.addEventListener('click', () => {
+            if (reportUrl) {
+                window.open(reportUrl, '_blank');
+            } else {
+                showError('report', 'No report URL available');
+            }
+        });
+
+        downloadBtn.addEventListener('click', async () => {
+            if (!checkDatasetLoaded('download')) return;
+
+            hideAllErrors();
+            setLoading(true);
+
+            try {
+                const params = new URLSearchParams();
+
+                // Add format parameter
+                const format = downloadFormatSelect.value;
+                params.append('format', format);
+
+                const downloadEndpoint = `${API_BASE_URL}/datasets/${currentDatasetId}/download?${params.toString()}`;
+
+                const headers = createHeaders();
+                const response = await fetch(downloadEndpoint, {
+                    headers: headers
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                // Get the blob from the response
+                const blob = await response.blob();
+
+                // Create a URL for the blob
+                const url = window.URL.createObjectURL(blob);
+
+                // Create a temporary link and trigger download
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `dataset_${currentDatasetId}.${getFileExtension(format)}`;
+                document.body.appendChild(a);
+                a.click();
+
+                // Clean up
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                }, 100);
+
+                // Show success message
+                downloadSuccess.classList.remove('d-none');
+            } catch (error) {
+                console.error('Error downloading dataset:', error);
+                showError('download', error.message || 'An error occurred while downloading');
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        // Dataset selector event handlers
+        originalDatasetRadio.addEventListener('change', function() {
+            if (this.checked) {
+                switchDataset(false);
+            }
+        });
+
+        processedDatasetRadio.addEventListener('change', function() {
+            if (this.checked) {
+                switchDataset(true);
+            }
+        });
+
+        // Tab click handlers to check for dataset
+        document.querySelectorAll('.nav-link').forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Check if we need to show an error for this tab
+                const tabId = this.id;
+                const section = tabId.replace('-tab', '');
+
+                // Clear any existing errors when switching tabs
+                hideAllErrors();
+
+                // Check if dataset is needed for this tab
+                if (section !== 'upload' && !currentDatasetId) {
+                    setTimeout(() => {
+                        showError(section, 'No dataset loaded. Please upload a dataset first.');
+                    }, 100);
+                }
+            });
+        });
+
+        // Check URL parameters for dataset ID and access key
+        function getUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const datasetId = urlParams.get('dataset_id');
+            const accessKey = urlParams.get('access_key');
+
+            if (datasetId && accessKey) {
+                // Set the values in the manual input fields
+                manualDatasetIdInput.value = datasetId;
+                manualAccessKeyInput.value = accessKey;
+
+                // Automatically connect to the dataset
+                connectDatasetBtn.click();
+            }
+        }
+
+        // Initial state
+        updateDatasetStatus();
+        getUrlParams();
+    });
+</script>
 </body>
 </html>
